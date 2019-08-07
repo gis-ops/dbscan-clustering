@@ -1,0 +1,18 @@
+{
+  "files": {
+    "main.css": "/dbscan-clustering/./static/css/main.8576bd03.chunk.css",
+    "main.js": "/dbscan-clustering/./static/js/main.c7227d56.chunk.js",
+    "main.js.map": "/dbscan-clustering/./static/js/main.c7227d56.chunk.js.map",
+    "runtime~main.js": "/dbscan-clustering/./static/js/runtime~main.f4a6c8b1.js",
+    "runtime~main.js.map": "/dbscan-clustering/./static/js/runtime~main.f4a6c8b1.js.map",
+    "static/css/2.73b0db0c.chunk.css": "/dbscan-clustering/./static/css/2.73b0db0c.chunk.css",
+    "static/js/2.0cd51374.chunk.js": "/dbscan-clustering/./static/js/2.0cd51374.chunk.js",
+    "static/js/2.0cd51374.chunk.js.map": "/dbscan-clustering/./static/js/2.0cd51374.chunk.js.map",
+    "index.html": "/dbscan-clustering/./index.html",
+    "precache-manifest.8d26c380a23b0d7eaa751f7690696d42.js": "/dbscan-clustering/./precache-manifest.8d26c380a23b0d7eaa751f7690696d42.js",
+    "service-worker.js": "/dbscan-clustering/./service-worker.js",
+    "static/css/2.73b0db0c.chunk.css.map": "/dbscan-clustering/./static/css/2.73b0db0c.chunk.css.map",
+    "static/css/main.8576bd03.chunk.css.map": "/dbscan-clustering/./static/css/main.8576bd03.chunk.css.map",
+    "static/media/index.css": "/dbscan-clustering/./static/media/outline-icons.ef60a4f6.woff"
+  }
+}

@@ -4,11 +4,13 @@ import {
   RECEIVE_PLACES_RESULTS,
   UPDATE_BBOX,
   UPDATE_DBSCAN_SETTINGS,
-  COMPUTE_DBSCAN
+  COMPUTE_DBSCAN,
+  RESULT_HANDLER
 } from '../actions/actions'
 
 const initialPlacesState = {
   boundingbox: '',
+  message: { receivedAt: 0 },
   lastCall: Date.now(),
   places: {},
   dbscanSettings: {
@@ -20,6 +22,16 @@ const initialPlacesState = {
 
 const placesControls = (state = initialPlacesState, action) => {
   switch (action.type) {
+    case RESULT_HANDLER:
+      return {
+        ...state,
+        message: {
+          ...state.message,
+          ...action.payload,
+          receivedAt: Date.now()
+        }
+      }
+
     case COMPUTE_DBSCAN:
       return {
         ...state,

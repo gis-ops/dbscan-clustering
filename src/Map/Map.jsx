@@ -10,7 +10,7 @@ import {
   point,
   featureCollection
 } from '@turf/turf'
-import { doUpdateBoundingBox } from '../actions/actions'
+import { doUpdateBoundingBox, sendMessage } from '../actions/actions'
 
 import HereTileLayers from './hereTileLayers'
 
@@ -170,6 +170,10 @@ class Map extends React.Component {
   // }
 
   processClusters(data) {
+    const { dispatch } = this.props
+
+    clusterLayer.clearLayers()
+
     const clusters = {}
 
     for (const feature of data.features) {
@@ -201,38 +205,50 @@ class Map extends React.Component {
       .colors(Object.keys(clusters).length)
 
     let cnt = 0
-    for (const clusterObj in clusters) {
-      if (clusterObj !== 'noise' && clusterObj !== 'edge') {
-        const hull = concave(
-          featureCollection(clusters[clusterObj]) /*options*/
-        )
-
-        L.geoJSON(hull, {
-          style: {
-            fillColor: scaleHsl[cnt],
-            weight: 2,
-            opacity: 1,
-            color: scaleHsl[cnt],
-            pane: 'clusterPane'
-          }
+    if (Object.keys(clusters).length == 1) {
+      dispatch(
+        sendMessage({
+          type: 'warning',
+          icon: 'warning',
+          description: 'No clusters found, try and change your settings',
+          title: 'DBScan settings'
         })
-          .addTo(clusterLayer)
-          .bindTooltip(
-            '<strong>Cluster number:</strong> ' +
-              (parseInt(clusterObj) + 1) +
-              '<br/> ' +
-              '<strong>Amount of points in cluster:</strong> ' +
-              clusters[clusterObj].length,
-            {
-              permanent: false,
-              sticky: true
-            }
+      )
+    } else {
+      for (const clusterObj in clusters) {
+        if (clusterObj !== 'noise' && clusterObj !== 'edge') {
+          const hull = concave(
+            featureCollection(clusters[clusterObj]) /*options*/
           )
-          .openTooltip()
-        clusterLayer.bringToBack()
+          if (clusters[clusterObj].length > 0) {
+            L.geoJSON(hull, {
+              style: {
+                fillColor: scaleHsl[cnt],
+                weight: 2,
+                opacity: 1,
+                color: scaleHsl[cnt],
+                pane: 'clusterPane'
+              }
+            })
+              .addTo(clusterLayer)
+              .bindTooltip(
+                '<strong>Cluster number:</strong> ' +
+                  (parseInt(clusterObj) + 1) +
+                  '<br/> ' +
+                  '<strong>Amount of points in cluster:</strong> ' +
+                  clusters[clusterObj].length,
+                {
+                  permanent: false,
+                  sticky: true
+                }
+              )
+              .openTooltip()
+            clusterLayer.bringToBack()
+          }
+        }
+        cnt += 1
       }
     }
-    cnt += 1
   }
 
   componentDidUpdate(prevProps) {

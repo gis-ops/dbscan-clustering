@@ -2,8 +2,8 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import _ from 'lodash'
-
 import { Slider } from 'react-semantic-ui-range'
+import { SemanticToastContainer, toast } from 'react-semantic-toasts'
 
 import {
   Segment,
@@ -59,7 +59,8 @@ class Control extends React.Component {
     dbscanSettings: PropTypes.object,
     isCalculatingDbScan: PropTypes.bool,
     boundingbox: PropTypes.string,
-    dispatch: PropTypes.func.isRequired
+    dispatch: PropTypes.func.isRequired,
+    message: PropTypes.object
   }
 
   handleClick = (event, data) => {
@@ -71,6 +72,20 @@ class Control extends React.Component {
   handleClickDbscan = (event, data) => {
     const { dispatch } = this.props
     dispatch(computeDbScan())
+  }
+
+  componentDidUpdate = prevProps => {
+    const { message } = this.props
+
+    if (message.receivedAt > prevProps.message.receivedAt) {
+      toast({
+        type: message.type,
+        icon: message.icon,
+        title: message.topic,
+        description: message.description,
+        time: 5000
+      })
+    }
   }
 
   render() {
@@ -124,15 +139,16 @@ class Control extends React.Component {
           </div>
           <Header as="h5">DBScan settings</Header>
           <div className="flex flex-row">
-            <div className="w-50">
+            <div className="w-80">
               <Slider
                 discrete
                 color="grey"
                 value={dbscanSettings.maxDistance}
                 settings={{
                   start: dbscanSettings.maxDistance,
+                  value: dbscanSettings.maxDistance,
                   min: 100,
-                  max: 50000,
+                  max: 5000,
                   step: 50,
                   onChange: value => {
                     dispatch(
@@ -155,12 +171,13 @@ class Control extends React.Component {
                 />
               </div>
             </div>
-            <div className="w-50">
+            <div className="w-80">
               <Slider
                 discrete
                 color="grey"
                 value={dbscanSettings}
                 settings={{
+                  start: dbscanSettings.minPoints,
                   value: dbscanSettings.minPoints,
                   min: 3,
                   max: 20,
@@ -230,6 +247,7 @@ class Control extends React.Component {
             })}
           </div>
         </Segment>
+        <SemanticToastContainer position="bottom-center" />
       </div>
     )
   }
@@ -240,14 +258,16 @@ const mapStateToProps = state => {
     places,
     isCalculatingDbScan,
     boundingbox,
-    dbscanSettings
+    dbscanSettings,
+    message
   } = state.placesControls
 
   return {
     places,
     boundingbox,
     isCalculatingDbScan,
-    dbscanSettings
+    dbscanSettings,
+    message
   }
 }
 

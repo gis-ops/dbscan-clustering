@@ -2,7 +2,7 @@
   "name": "react-redux-leaflet-turf-dbscan",
   "version": "0.0.1",
   "private": false,
-  "homepage": "https://gis-ops.github.io/tutorials/",
+  "homepage": "https://gis-ops.github.io/dbscan-clustering/.",
   "dependencies": {
     "@turf/turf": "^5.1.6",
     "axios": "^0.18.0",
@@ -72,7 +72,7 @@
     "eslint-plugin-promise": "^4.0.1",
     "eslint-plugin-react": "^7.13.0",
     "eslint-plugin-standard": "^4.0.0",
-    "gh-pages": "^2.0.1",
+    "gh-pages": "2.0.1",
     "husky": "2.4.1",
     "lint-staged": "8.2.1",
     "prettier": "1.17.1",

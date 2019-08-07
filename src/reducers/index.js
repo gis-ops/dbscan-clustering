@@ -15,7 +15,7 @@ const initialPlacesState = {
     minPoints: 10,
     maxDistance: 500
   },
-  lastCompute: ''
+  lastCompute: 0
 }
 
 const placesControls = (state = initialPlacesState, action) => {

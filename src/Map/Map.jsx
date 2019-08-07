@@ -56,7 +56,7 @@ class Map extends React.Component {
     lastCompute: PropTypes.number,
     dbscanSettings: PropTypes.object,
     dispatch: PropTypes.func.isRequired,
-    places: PropTypes.array
+    places: PropTypes.object
   }
 
   // and once the component has mounted we add everything to it
@@ -174,8 +174,8 @@ class Map extends React.Component {
 
     for (const feature of data.features) {
       if (
-        feature.properties.dbscan == 'noise' ||
-        feature.properties.dbscan == 'edge'
+        feature.properties.dbscan === 'noise' ||
+        feature.properties.dbscan === 'edge'
       ) {
         if (clusters.hasOwnProperty(feature.properties.dbscan)) {
           clusters[feature.properties.dbscan].push(
@@ -184,7 +184,7 @@ class Map extends React.Component {
         } else {
           clusters[feature.properties.dbscan] = []
         }
-      } else if (feature.properties.dbscan == 'core') {
+      } else if (feature.properties.dbscan === 'core') {
         if (clusters.hasOwnProperty(feature.properties.cluster)) {
           clusters[feature.properties.cluster].push(
             point(feature.geometry.coordinates)

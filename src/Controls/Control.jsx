@@ -62,10 +62,6 @@ class Control extends React.Component {
     dispatch: PropTypes.func.isRequired
   }
 
-  constructor(props) {
-    super(props)
-  }
-
   handleClick = (event, data) => {
     const { dispatch } = this.props
     this.setState({ value: data.name })
@@ -210,7 +206,7 @@ class Control extends React.Component {
             {Object.keys(herePlaces).map((key, index) => {
               let isDisabled = false
               if (places[herePlaces[key].name]) {
-                if (boundingbox == places[herePlaces[key].name].boundingbox) {
+                if (boundingbox === places[herePlaces[key].name].boundingbox) {
                   isDisabled = true
                 }
               }
@@ -222,7 +218,7 @@ class Control extends React.Component {
                     loading={
                       places[herePlaces[key].name]
                         ? places[herePlaces[key].name].isFetching
-                        : ''
+                        : false
                     }
                     onClick={this.handleClick}
                     name={herePlaces[key].name}

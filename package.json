@@ -2,11 +2,10 @@
   "name": "react-redux-leaflet-turf-dbscan",
   "version": "0.0.1",
   "private": false,
-  "homepage": "https://gis-ops.github.io/dbscan-clustering/.",
+  "homepage": "https://gis-ops.github.io/dbscan-clustering/",
   "dependencies": {
     "@turf/turf": "^5.1.6",
     "axios": "^0.18.0",
-    "chroma-js": "^2.0.2",
     "leaflet": "^1.4.0",
     "prop-types": "^15.6.2",
     "react": "^16.7.0",

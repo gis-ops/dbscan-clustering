@@ -282,10 +282,14 @@ class Map extends React.Component {
           .addTo(clusterLayer)
           .bindTooltip(
             '<strong>DBScan information:</strong> ' +
-              clusterObj +
-              '<br/> ' +
-              '<strong>Amount of points in cluster:</strong> ' +
-              clusterSize,
+              (!isNaN(clusterObj)
+                ? 'Cluster ' + (parseInt(clusterObj) + 1)
+                : clusterObj) +
+              (!isNaN(clusterObj)
+                ? '<br/> ' +
+                  '<strong>Amount of points in cluster:</strong> ' +
+                  clusterSize
+                : ''),
             {
               permanent: false,
               sticky: true

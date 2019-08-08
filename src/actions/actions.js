@@ -7,6 +7,7 @@ export const UPDATE_BBOX = 'UPDATE_BBOX'
 export const UPDATE_DBSCAN_SETTINGS = 'UPDATE_DBSCAN_SETTINGS'
 export const COMPUTE_DBSCAN = 'COMPUTE_DBSCAN'
 export const RESULT_HANDLER = 'RESULT_HANDLER'
+export const CLEAR = 'CLEAR'
 
 export const fetchHerePlaces = payload => (dispatch, getState) => {
   dispatch(requestPlacesResults({ category: payload.category }))
@@ -56,6 +57,10 @@ export const doUpdateBoundingBox = boundingbox => dispatch => {
 export const sendMessage = message => ({
   type: RESULT_HANDLER,
   payload: message
+})
+
+export const clear = () => ({
+  type: CLEAR
 })
 
 const updateBoundingBox = bbox => ({

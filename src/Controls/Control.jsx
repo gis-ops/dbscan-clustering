@@ -18,7 +18,8 @@ import {
 import {
   fetchHerePlaces,
   updateDbScanSettings,
-  computeDbScan
+  computeDbScan,
+  clear
 } from '../actions/actions'
 
 const segmentStyle = {
@@ -69,11 +70,15 @@ class Control extends React.Component {
     dispatch(fetchHerePlaces({ category: data.name, color: data.color }))
   }
 
-  handleClickDbscan = (event, data) => {
+  handleClickDbscan = () => {
     const { dispatch } = this.props
     dispatch(computeDbScan())
   }
 
+  handleClickClear = () => {
+    const { dispatch } = this.props
+    dispatch(clear())
+  }
   componentDidUpdate = prevProps => {
     const { message } = this.props
 
@@ -219,7 +224,6 @@ class Control extends React.Component {
               active={isCalculatingDbScan}
               style={{ right: 0, left: 'unset' }}
             />
-
             {Object.keys(herePlaces).map((key, index) => {
               let isDisabled = false
               if (places[herePlaces[key].name]) {
@@ -245,6 +249,14 @@ class Control extends React.Component {
                 </div>
               )
             })}
+            <div className="mt2">
+              <Popup
+                content="Reset places and map"
+                trigger={
+                  <Button onClick={this.handleClickClear} basic icon="remove" />
+                }
+              />
+            </div>
           </div>
         </Segment>
         <SemanticToastContainer position="bottom-center" />

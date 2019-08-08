@@ -5,7 +5,8 @@ import {
   UPDATE_BBOX,
   UPDATE_DBSCAN_SETTINGS,
   COMPUTE_DBSCAN,
-  RESULT_HANDLER
+  RESULT_HANDLER,
+  CLEAR
 } from '../actions/actions'
 
 const initialPlacesState = {
@@ -22,6 +23,14 @@ const initialPlacesState = {
 
 const placesControls = (state = initialPlacesState, action) => {
   switch (action.type) {
+    case CLEAR:
+      return {
+        ...state,
+        places: {},
+        lastCall: Date.now(),
+        lastCompute: Date.now()
+      }
+
     case RESULT_HANDLER:
       return {
         ...state,

@@ -1,18 +1,18 @@
 {
   "files": {
-    "main.css": "/dbscan-clustering/./static/css/main.04e57c1b.chunk.css",
-    "main.js": "/dbscan-clustering/./static/js/main.10b44d29.chunk.js",
-    "main.js.map": "/dbscan-clustering/./static/js/main.10b44d29.chunk.js.map",
-    "runtime~main.js": "/dbscan-clustering/./static/js/runtime~main.f4a6c8b1.js",
-    "runtime~main.js.map": "/dbscan-clustering/./static/js/runtime~main.f4a6c8b1.js.map",
-    "static/css/2.901e366f.chunk.css": "/dbscan-clustering/./static/css/2.901e366f.chunk.css",
-    "static/js/2.3fc36ab9.chunk.js": "/dbscan-clustering/./static/js/2.3fc36ab9.chunk.js",
-    "static/js/2.3fc36ab9.chunk.js.map": "/dbscan-clustering/./static/js/2.3fc36ab9.chunk.js.map",
-    "index.html": "/dbscan-clustering/./index.html",
-    "precache-manifest.2d41850d54c2f117aea8c9a25450ef25.js": "/dbscan-clustering/./precache-manifest.2d41850d54c2f117aea8c9a25450ef25.js",
-    "service-worker.js": "/dbscan-clustering/./service-worker.js",
-    "static/css/2.901e366f.chunk.css.map": "/dbscan-clustering/./static/css/2.901e366f.chunk.css.map",
-    "static/css/main.04e57c1b.chunk.css.map": "/dbscan-clustering/./static/css/main.04e57c1b.chunk.css.map",
-    "static/media/index.css": "/dbscan-clustering/./static/media/outline-icons.ef60a4f6.woff"
+    "main.css": "/dbscan-clustering/static/css/main.93840f97.chunk.css",
+    "main.js": "/dbscan-clustering/static/js/main.10b44d29.chunk.js",
+    "main.js.map": "/dbscan-clustering/static/js/main.10b44d29.chunk.js.map",
+    "runtime~main.js": "/dbscan-clustering/static/js/runtime~main.dc1f00c2.js",
+    "runtime~main.js.map": "/dbscan-clustering/static/js/runtime~main.dc1f00c2.js.map",
+    "static/css/2.0b9145d4.chunk.css": "/dbscan-clustering/static/css/2.0b9145d4.chunk.css",
+    "static/js/2.3fc36ab9.chunk.js": "/dbscan-clustering/static/js/2.3fc36ab9.chunk.js",
+    "static/js/2.3fc36ab9.chunk.js.map": "/dbscan-clustering/static/js/2.3fc36ab9.chunk.js.map",
+    "index.html": "/dbscan-clustering/index.html",
+    "precache-manifest.53763243fdb878e0bf8ea930b90815ae.js": "/dbscan-clustering/precache-manifest.53763243fdb878e0bf8ea930b90815ae.js",
+    "service-worker.js": "/dbscan-clustering/service-worker.js",
+    "static/css/2.0b9145d4.chunk.css.map": "/dbscan-clustering/static/css/2.0b9145d4.chunk.css.map",
+    "static/css/main.93840f97.chunk.css.map": "/dbscan-clustering/static/css/main.93840f97.chunk.css.map",
+    "static/media/index.css": "/dbscan-clustering/static/media/outline-icons.ef60a4f6.woff"
   }
 }

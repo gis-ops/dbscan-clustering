@@ -8,13 +8,13 @@ import {
   clustersDbscan,
   concave,
   point,
+  polygon,
+  multiPoint,
   featureCollection
 } from '@turf/turf'
 import { doUpdateBoundingBox, sendMessage } from '../actions/actions'
 
 import HereTileLayers from './hereTileLayers'
-
-import chroma from 'chroma-js'
 
 // defining the container styles the map sits in
 const style = {
@@ -109,8 +109,8 @@ class Map extends React.Component {
         '<a href="https://developer.here.com/" target="_blank"><div class="here-logo"></div></a>'
       return div
     }
-    this.map.addControl(hereLogo)
     this.map.addControl(brand)
+    this.map.addControl(hereLogo)
 
     this.map.on('moveend', () => {
       dispatch(doUpdateBoundingBox(this.map.getBounds()))
@@ -182,9 +182,7 @@ class Map extends React.Component {
         feature.properties.dbscan === 'edge'
       ) {
         if (clusters.hasOwnProperty(feature.properties.dbscan)) {
-          clusters[feature.properties.dbscan].push(
-            point(feature.geometry.coordinates)
-          )
+          clusters[feature.properties.dbscan].push(feature.geometry.coordinates)
         } else {
           clusters[feature.properties.dbscan] = []
         }
@@ -199,12 +197,6 @@ class Map extends React.Component {
       }
     }
 
-    const scaleHsl = chroma
-      .scale(['#919098', '#FFCFD2', '#A3C4BC', '#DCEED1', '#A8D4AD'])
-      .mode('hsl')
-      .colors(Object.keys(clusters).length)
-
-    let cnt = 0
     if (Object.keys(clusters).length == 1) {
       dispatch(
         sendMessage({
@@ -216,37 +208,91 @@ class Map extends React.Component {
       )
     } else {
       for (const clusterObj in clusters) {
+        const clusterSize = clusters[clusterObj].length
+        let geojson
         if (clusterObj !== 'noise' && clusterObj !== 'edge') {
-          const hull = concave(
-            featureCollection(clusters[clusterObj]) /*options*/
-          )
-          if (clusters[clusterObj].length > 0) {
-            L.geoJSON(hull, {
-              style: {
-                fillColor: scaleHsl[cnt],
-                weight: 2,
-                opacity: 1,
-                color: scaleHsl[cnt],
-                pane: 'clusterPane'
-              }
-            })
-              .addTo(clusterLayer)
-              .bindTooltip(
-                '<strong>Cluster number:</strong> ' +
-                  (parseInt(clusterObj) + 1) +
-                  '<br/> ' +
-                  '<strong>Amount of points in cluster:</strong> ' +
-                  clusters[clusterObj].length,
-                {
-                  permanent: false,
-                  sticky: true
-                }
-              )
-              .openTooltip()
-            clusterLayer.bringToBack()
+          switch (true) {
+            case clusterSize <= 2: {
+              geojson = multiPoint(featureCollection(clusters[clusterObj]), {
+                type: 'cluster'
+              })
+              break
+            }
+
+            case clusterSize == 3: {
+              geojson = polygon(featureCollection(clusters[clusterObj]), {
+                type: 'cluster'
+              })
+              break
+            }
+
+            case clusterSize > 3: {
+              geojson = concave(featureCollection(clusters[clusterObj]))
+              geojson.properties.type = 'cluster'
+
+              break
+            }
           }
+        } else {
+          geojson = multiPoint(clusters[clusterObj], {
+            type: clusterObj
+          })
         }
-        cnt += 1
+
+        L.geoJSON(geojson, {
+          pointToLayer: (feature, latlng) => {
+            switch (feature.properties.type) {
+              case 'edge':
+              case 'noise':
+                return L.circleMarker(latlng)
+            }
+          },
+          style: feature => {
+            switch (feature.properties.type) {
+              case 'cluster':
+                return {
+                  radius: 8,
+                  fillColor: 'black',
+                  weight: 0,
+                  opacity: 1,
+                  color: 'black',
+                  pane: 'clusterPane'
+                }
+              case 'noise':
+                return {
+                  radius: 8,
+                  fillColor: 'black',
+                  color: 'black',
+                  weight: 0,
+                  opacity: 1,
+                  fillOpacity: 0.3
+                }
+              case 'edge':
+                return {
+                  radius: 8,
+                  fillColor: 'blue',
+                  color: 'blue',
+                  weight: 0,
+                  opacity: 1,
+                  fillOpacity: 0.3
+                }
+            }
+          }
+        })
+          .addTo(clusterLayer)
+          .bindTooltip(
+            '<strong>DBScan information:</strong> ' +
+              clusterObj +
+              '<br/> ' +
+              '<strong>Amount of points in cluster:</strong> ' +
+              clusterSize,
+            {
+              permanent: false,
+              sticky: true
+            }
+          )
+        //.openTooltip()
+        clusterLayer.bringToBack()
       }
     }
   }
@@ -261,7 +307,6 @@ class Map extends React.Component {
       const inputPoints = placesLayer.toGeoJSON()
       const maxDistance = dbscanSettings.maxDistance / 1000
       const minPoints = dbscanSettings.minPoints
-      // console.log(points)
       const clustered = clustersDbscan(inputPoints, maxDistance, {
         minPoints: minPoints
       })
@@ -286,7 +331,8 @@ class Map extends React.Component {
             orig_color: places[place].color,
             radius: 5,
             id: cnt,
-            weight: 1
+            weight: 1,
+            opacity: 0.5
           })
             .addTo(placesLayer)
             .bindTooltip(placeObj.title)

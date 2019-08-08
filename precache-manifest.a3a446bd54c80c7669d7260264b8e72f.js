@@ -1,6 +1,6 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "b42e4abb2aefb8bc8521d37b3d08ea74",
+    "revision": "75faf39a5d7325ccce6efe724ae75989",
     "url": "/dbscan-clustering/./index.html"
   },
   {
@@ -8,7 +8,7 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/dbscan-clustering/./static/css/2.901e366f.chunk.css"
   },
   {
-    "revision": "8351b9318c36175eb762",
+    "revision": "b02272bd595d881bd843",
     "url": "/dbscan-clustering/./static/css/main.04e57c1b.chunk.css"
   },
   {
@@ -16,8 +16,8 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/dbscan-clustering/./static/js/2.a07546f5.chunk.js"
   },
   {
-    "revision": "8351b9318c36175eb762",
-    "url": "/dbscan-clustering/./static/js/main.c197d09f.chunk.js"
+    "revision": "b02272bd595d881bd843",
+    "url": "/dbscan-clustering/./static/js/main.8ffe14c9.chunk.js"
   },
   {
     "revision": "dc18d43e314d0a84bdce",

@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
 
 importScripts(
-  "/dbscan-clustering/./precache-manifest.bd5f742a634f8484d6b5045b698dc0bd.js"
+  "/dbscan-clustering/./precache-manifest.a3a446bd54c80c7669d7260264b8e72f.js"
 );
 
 self.addEventListener('message', (event) => {

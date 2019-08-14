@@ -1,5 +1,3 @@
-/_ eslint-disable _/
-
 # Building a DBScan Clustering Web(M)app with HERE Maps places, React, Leaflet and TurfJS
 
 ![HERE Maps Places and DBScan Clusters](https://user-images.githubusercontent.com/10322094/62734878-49bc9800-ba2a-11e9-9341-2d8215501c23.jpg)
@@ -347,14 +345,8 @@ import { combineReducers } from 'redux'
 
 const initialPlacesState = {
   boundingbox: '',
-  message: { receivedAt: 0 },
   lastCall: Date.now(),
-  places: {},
-  dbscanSettings: {
-    minPoints: 10,
-    maxDistance: 500
-  },
-  lastCompute: 0
+  places: {}
 }
 
 const placesControls = (state = initialPlacesState, action) => {
@@ -915,7 +907,7 @@ Let's connect this component with this following snippet but don't forget to rem
 ...
 
 const mapStateToProps = state => {
-  const { places, lastCall, lastCompute, dbscanSettings } = state.placesControls
+  const { places, lastCall } = state.placesControls
   return {
     places,
     lastCall
@@ -932,721 +924,497 @@ Refresh your application and request some places, you will see something beautif
 
 ![Some places on the map](https://user-images.githubusercontent.com/10322094/63048658-4700ed80-bed7-11e9-91ad-5f266c0df8d7.png 'Some places on the map!')
 
-## Step 4 - Settings for the user
+## Step 6 - Preparing our application for DBScan clustering
 
-We now want to provide a rich set of options for the user to control the input parameters for the isochrones.
-Let's define some requirements in the now to be created `Settings.jsx` under `Controls`:
-
-1. Select mode pedestrian or car
-2. Turn HERE Maps traffic settings on & off for the car profile
-3. The range type should be able to handle time or distance
-4. We want to set our maximum reachability and the intervals
-
-With some beautiful semantic UI components and and some further actions to adapt the settings we could come up with something that looks like this.
-By the way, to keep this tutorial more or less legible, this component is quite large; this being said, usually I would recommend to break this component up into smaller parts.
-Please read the inline comments to understand what is going on in the logic.
-
-### Controls/Settings.jsx
-
-```javascript
-import React from 'react'
-import PropTypes from 'prop-types'
-import { connect } from 'react-redux'
-import { Slider } from 'react-semantic-ui-range'
-import { Label, Button, Divider } from 'semantic-ui-react'
-
-// we need just one action in this component to update settings made
-import { updateSettings } from '../actions/actions'
-
-class Settings extends React.Component {
-  static propTypes = {
-    dispatch: PropTypes.func.isRequired,
-    controls: PropTypes.object.isRequired
-  }
-
-  // dispatches the action
-  updateSettings() {
-    const { controls, dispatch } = this.props
-
-    dispatch(
-      updateSettings({
-        settings: controls.settings
-      })
-    )
-  }
-
-  // we are making settings directly in the controls.settings object which is being passed on to the updateSettings() function up top
-  handleSettings(settingName, setting) {
-    const { controls } = this.props
-
-    controls.settings[settingName] = setting
-
-    this.updateSettings()
-  }
-
-  // this looks complex but it isn't, we basically want to make sure the the interval settings maximum can never be greater than the range maximum
-  alignRangeInterval() {
-    const { controls } = this.props
-
-    if (
-      controls.settings.range.value < controls.settings.interval.value ||
-      controls.settings.interval.value === ''
-    ) {
-      controls.settings.interval.value = controls.settings.range.value
-    }
-
-    controls.settings.interval.max = controls.settings.range.value
-  }
-
-  render() {
-    const { controls } = this.props
-
-    // depending on what the user selected we obviously want to show the correct units
-    const rangetype =
-      controls.settings.rangetype === 'time' ? ' minutes' : ' kilometers'
-
-    // our settings which are needed for the range slider, read more here https://github.com/iozbeyli/react-semantic-ui-range
-    const rangeSettings = {
-      settings: {
-        ...controls.settings.range,
-        min: 1,
-        step: 1,
-        start: controls.settings.range.value,
-        // when the slider is moved, we want to update our settings and make sure the maximums align
-        onChange: value => {
-          controls.settings.range.value = value
-
-          this.alignRangeInterval()
-          this.updateSettings()
-        }
-      }
-    }
-    // same as above, just for the interval slider this time
-    const intervalSettings = {
-      settings: {
-        ...controls.settings.interval,
-        min: 1,
-        step: 1,
-        start: controls.settings.interval.value,
-        onChange: value => {
-          controls.settings.interval.value = value
-          this.updateSettings()
-        }
-      }
-    }
-    // we have different kinds of settings in here. The components should be quite self-explanatory. Whenever a button is clicked we call handleSettings() and this way pass on our setting through to our state.
-    return (
-      <div className="mt3">
-        <Divider />
-        <Label size="small">{'Mode of transport'}</Label>
-        <div className="mt3">
-          <Button.Group basic size="small">
-            {Object.keys({ pedestrian: {}, car: {} }).map((key, i) => (
-              <Button
-                active={key === controls.settings.mode}
-                key={i}
-                mode={key}
-                onClick={() => this.handleSettings('mode', key)}>
-                {key}
-              </Button>
-            ))}
-          </Button.Group>
-          {controls.settings.mode === 'car' && (
-            <div>
-              <Divider />
-              <Label size="small">{'Traffic'}</Label>
-              <div className="mt3">
-                <Button.Group basic size="small">
-                  {Object.keys({ enabled: {}, disabled: {} }).map((key, i) => (
-                    <Button
-                      active={key === controls.settings.traffic}
-                      key={i}
-                      mode={key}
-                      onClick={() => this.handleSettings('traffic', key)}>
-                      {key}
-                    </Button>
-                  ))}
-                </Button.Group>
-              </div>
-            </div>
-          )}
-        </div>
-        <Divider />
-        <Label size="small">{'Range type'}</Label>
-        <div className="mt3">
-          <Button.Group basic size="small">
-            {Object.keys({ distance: {}, time: {} }).map((key, i) => (
-              <Button
-                active={key === controls.settings.rangetype}
-                key={i}
-                mode={key}
-                onClick={() => this.handleSettings('rangetype', key)}>
-                {key}
-              </Button>
-            ))}
-          </Button.Group>
-        </div>
-        <Divider />
-        <Label size="small">{'Maximum range'}</Label>
-        <div className="mt3">
-          <Slider
-            discrete
-            color="grey"
-            value={controls.settings.range.value}
-            inverted={false}
-            settings={rangeSettings.settings}
-          />
-          <div className="mt2">
-            <Label className="mt2" color="grey" size={'mini'}>
-              {controls.settings.range.value + rangetype}
-            </Label>
-          </div>
-        </div>
-        <Divider />
-        <Label size="small">{'Interval step'}</Label>
-        <div className="mt3">
-          <Slider
-            discrete
-            color="grey"
-            value={controls.settings.interval.value}
-            inverted={false}
-            settings={intervalSettings.settings}
-          />
-          <div className="mt2">
-            <Label className="mt2" color="grey" size={'mini'}>
-              {controls.settings.interval.value + rangetype}
-            </Label>
-          </div>
-        </div>
-      </div>
-    )
-  }
-}
-
-const mapStateToProps = state => {
-  const controls = state.isochronesControls
-  return {
-    controls
-  }
-}
-
-export default connect(mapStateToProps)(Settings)
-```
-
-And as you can imagine, we have to now implement our action!
-
-### actions.js
-
-You probably get it by now;
-First of all we will export this action for our reducer..
-
-```javascript
-export const UPDATE_SETTINGS = 'UPDATE_SETTINGS'
-```
-
-and export it for our settings component to access:
-
-```javascript
-...
-
-export const updateSettings = payload => ({
-  type: UPDATE_SETTINGS,
-  ...payload
-})
-
-...
-```
-
-Last but not least, we will update our reducer.
+You may have guessed again.
+There are 4 places where we will have to add further logic to make sure we can compute clusters with DBScan.
+The actions, the reducers, the Map and of course the Controls.
+Let's start enhancing our reducer to make sure it can cope with a little more state.
 
 ### reducers/index.js
 
-Go ahead and add this snippet:
+DBScans main setting consist of minimum points and a maximum distance, if you are interested to learn how these work please check the links we provided above.
+Hence, we will add some basic initial state settings to the file and extend our switch clause.
+We want to both update our settings and also be able to compute the clusters and will need some "not yet" existing actions.
 
 ```javascript
-...
-
-case UPDATE_SETTINGS:
-  return {
-    ...state,
-    settings: action.settings
-  }
 
 ...
-```
 
-How easy? But please don't forget to import the action which by now should look something like this:
-
-```javascript
+// add these 2 actions in our import block
 import {
-  UPDATE_TEXTINPUT,
-  UPDATE_CENTER,
-  REQUEST_GEOCODE_RESULTS,
-  RECEIVE_GEOCODE_RESULTS,
-  // new
-  UPDATE_SETTINGS
-} from '../actions/actions'
-```
 
-You probably are able to guess what comes next.
-Import the settings component to our `Controls/Control.jsx` and call it, you decide where!
+  ...
 
-```javascript
-import Settings from './Settings'
-```
-
-&
-
-```javascript
-...
-
-<div className="mt2"><Settings /></div>
-
-...
-```
-
-With everything in place, you should be able to see the settings component in action which are interactive and thus update the state when selecting them.
-
-![Settings in action](https://user-images.githubusercontent.com/10322094/53686571-12ceb180-3d29-11e9-9f93-e3577198f6ca.png 'Settings in action')
-
-## Step 5 - Calling the isochrones API and plotting the result on our map
-
-We are almost there.
-By now we can input an address and make some settings.
-The next step is to query the HERE Maps API for some wonderful looking isochrones.
-What now is missing is
-
-- a button to call the isochrones and
-- the action behind which ultimately holds some logic to plot the response on our map.
-
-We will handle this logic in our control component:
-
-### Control.jsx
-
-First of all we should add some new `propTypes` to our component.
-
-```javascript
-//class Control extends React.Component {
-...
-  isochronesCenter: PropTypes.object,
-  isFetchingIsochrones: PropTypes.bool.isRequired
-...
-
-```
-
-Additionally we need to import a new action `fetchHereIsochrones` which yet has to be defined:
-
-```javascript
-...
-import {
-  updateTextInput,
-  fetchHereGeocode,
-  updateCenter,
-  // new
-  fetchHereIsochrones
-} from "../actions/actions";
-...
-
-```
-
-Obviously this action has to be called from a button, which has to be inserted directly beneath our Search component with a click listener bound to it.
-Hence the render function of our controls will look something like this:
-
-```javascript
-...
-
-render() {
-  const {
-    isFetching,
-    userTextInput,
-    results,
-    // new
-    settings,
-    isFetchingIsochrones
-  } = this.props;
-
-  // new
-  // if an address is selected we will return true to enable our button!
-  const isResultSelected = () => {
-    if (settings.isochronesCenter.lat && settings.isochronesCenter.lng) return false
-    return true
-
-  };
-
-  return (
-    <div>
-      <Segment style={segmentStyle}>
-        <div>
-          <span>
-            Isochrones powered by <strong>HERE Maps</strong>
-          </span>
-        </div>
-        <Divider />
-        <div className="flex justify-between items-center mt3">
-          <Search
-            onSearchChange={this.handleSearchChange}
-            onResultSelect={this.handleResultSelect}
-            type="text"
-            fluid
-            input={{ fluid: true }}
-            loading={isFetching}
-            className="flex-grow-1 mr2"
-            results={results}
-            value={userTextInput}
-            placeholder="Find Address ..."
-          />
-          // new
-          <Button
-            circular
-            loading={isFetchingIsochrones}
-            disabled={isResultSelected()}
-            color="purple"
-            icon="globe"
-            onClick={this.handleFetchIsochrones}
-          />
-        </div>
-        <div className="mt2"><Settings /></div>
-      </Segment>
-    </div>
-  );
+  UPDATE_DBSCAN_SETTINGS,
+  COMPUTE_DBSCAN
 }
 
-```
+// and enhance our initial state object with these key and value pairs
+const initialPlacesState = {
 
-And our button is calling `handleFetchIsochrones` which looks like:
+  ...
 
-```javascript
-...
-
-handleFetchIsochrones = () => {
-  const { dispatch, settings} = this.props;
-
-  if (settings.isochronesCenter.lat && settings.isochronesCenter.lng) {
-    dispatch(
-      fetchHereIsochrones({settings})
-    );
-  }
-};
+  dbscanSettings: {
+    minPoints: 10,
+    maxDistance: 500
+  },
+  // this lastCompute will help us again determine if a new computation should be made
+  lastCompute: 0
+}
 
 ...
 
-```
 
-And finally don't forget to amend the missing state mappings..
-
-```javascript
-...
-
-const mapStateToProps = state => {
-  const userTextInput = state.isochronesControls.userInput
-  const results = state.isochronesControls.geocodeResults
-  const isFetching = state.isochronesControls.isFetching
-
-  // new
-  const settings = state.isochronesControls.settings
-  // new
-  const isFetchingIsochrones = state.isochronesControls.isFetchingIsochrones
-
+// let's update the lastCompute key when this action is called
+case COMPUTE_DBSCAN:
   return {
-    userTextInput,
-    results,
-    isFetching,
-    // new
-    settings,
-    // new
-    isFetchingIsochrones
-  };
-};
+    ...state,
+    lastCompute: Date.now()
+  }
+
+// and we want to update our dbscan settings when these are changed in the controller by the user
+case UPDATE_DBSCAN_SETTINGS:
+  return {
+    ...state,
+    dbscanSettings: {
+      ...state.dbscanSettings,
+      [action.payload.setting]: action.payload.value
+    }
+  }
+
 
 ...
-
 ```
 
-Clicking the button won't do much at the moment as the actions and reducers are missing.
-Similarly to the geocode requests we implemented before, we are calling the HERE isochrones API.
-Due to the amount of settings we have created one additional function to help us build the request which is named `processIsolineSettings`.
-Read the inline comments for more information.
+The actions in our reducer are imported from our actions file, eureka, so go add them tiger.
+Simple as that:
 
 ### actions/actions.js
 
-We are exporting 2 new actions.
-
 ```javascript
-...
-
-export const RECEIVE_ISOCHRONES_RESULTS = 'RECEIVE_ISOCHRONES_RESULTS'
-export const REQUEST_ISOCHRONES_RESULTS = 'REQUEST_ISOCHRONES_RESULTS'
 
 ...
-```
 
-```javascript
+export const UPDATE_DBSCAN_SETTINGS = 'UPDATE_DBSCAN_SETTINGS'
+export const COMPUTE_DBSCAN = 'COMPUTE_DBSCAN'
+
 ...
 
-export const fetchHereIsochrones = payload => dispatch => {
-
-  // we let the app know that we are calling the isochrones API
-  dispatch(requestIsochronesResults())
-
-  // we generate our GET parameters from the settigns
-  const isolineParameters = processIsolineSettings(payload.settings)
-
-  // as seen before :)
-  let url = new URL(
-      'https://isoline.route.api.here.com/routing/7.2/calculateisoline.json'
-    ),
-    params = {
-      app_id: hereAppId,
-      app_code: hereAppCode,
-      ...isolineParameters
-    }
-
-  url.search = new URLSearchParams(params)
-
-  return fetch(url)
-    .then(response => response.json())
-    .then(data =>
-      dispatch(processIsochronesResponse(data))
-    )
-    .catch(error => console.error(error))
-}
-
-
-const parseIsochronesResponse = json => {
-  if (json.response && json.response.isoline.length > 0) {
-    const isolinesReversed = json.response.isoline.reverse()
-    return isolinesReversed
-  }
-  return []
-}
-
-const processIsochronesResponse = (json) => dispatch => {
-  // a small trick: we reverse the polygons that the largest comes first :-)
-  const results = parseIsochronesResponse(json)
-
-  // we have received our results
-  dispatch(receiveIsochronesResults(results))
-}
-
-
-export const receiveIsochronesResults = results => ({
-  type: RECEIVE_ISOCHRONES_RESULTS,
-  results: results
+export const computeDbScan = () => ({
+  type: COMPUTE_DBSCAN
 })
 
-const processIsolineSettings = (settings) => {
-  let isolineParameters = {}
-
-  // we prepare the GET parameters according to the HERE Maps Isochrones API docs
-  isolineParameters.mode = `fastest;${settings.mode};traffic:${settings.traffic};`
-  isolineParameters.rangetype = settings.rangetype
-
-  isolineParameters.start = settings.isochronesCenter.lat + ',' + settings.isochronesCenter.lng
-
-  // seconds
-  const ranges = []
-  if (settings.rangetype === 'time') {
-    let rangeInSeconds = settings.range.value * 60
-    const intervalInSeconds = settings.interval.value * 60
-
-    // to generate ranges!
-    while (rangeInSeconds > 0) {
-      ranges.push(rangeInSeconds)
-      rangeInSeconds -= intervalInSeconds
-    }
-
-    isolineParameters.range = ranges.join(',')
-
-  // meters
-  } else if (settings.rangetype === 'distance') {
-    let rangeInMeters = settings.range.value * 1000
-    const intervalInMeters = settings.interval.value * 1000
-
-    // to generate ranges!
-    while (rangeInMeters > 0) {
-      ranges.push(rangeInMeters)
-      rangeInMeters -= intervalInMeters
-    }
-
-    isolineParameters.range = ranges.join(',')
-  }
-  return isolineParameters
-}
-
-export const requestIsochronesResults = () => ({
-  type: REQUEST_ISOCHRONES_RESULTS
+export const updateDbScanSettings = settings => ({
+  type: UPDATE_DBSCAN_SETTINGS,
+  payload: { ...settings }
 })
 
-...
+
 ```
 
-To be reduced:
+Last but not least we want to add this logic to the user interface, both controls and map.
+We have defined our actions and reducers which we can now connect to the controls component.
 
-### reducers/index.js
-
-Import the actions:
+### Controls/Control.jsx
 
 ```javascript
+
+...
+
+const mapStateToProps = state => {
+  const {
+    ...
+    // new!
+    dbscanSettings
+  } = state.placesControls
+  return {
+    ...
+    // new!
+    dbscanSettings
+  }
+}
+
+```
+
+And we need some simple controls, usually sliders look quite nice.
+Let's also add the Header and Divider class from semantic UI.
+Furthermore you will have to import the newly added actions.
+
+```javascript
+
+...
+
+import { Slider } from 'react-semantic-ui-range'
 
 import {
-  UPDATE_TEXTINPUT,
-  UPDATE_CENTER,
-  REQUEST_GEOCODE_RESULTS,
-  RECEIVE_GEOCODE_RESULTS,
-  UPDATE_SETTINGS,
-  // new
-  REQUEST_ISOCHRONES_RESULTS,
-  // new
-  RECEIVE_ISOCHRONES_RESULTS,
-} from "../actions/actions"
+  ...
+  Divider,
+  Header
+} from 'semantic-ui-react'
 
-...
-```
 
-And add your reduce cases:
-
-```javascript
+import {
+  ...
+  updateDbScanSettings,
+  computeDbScan,
+} from '../actions/actions'
 
 ...
 
-case REQUEST_ISOCHRONES_RESULTS:
-  return {
-    ...state,
-    isFetchingIsochrones: true
-
-  }
-case RECEIVE_ISOCHRONES_RESULTS:
-  return {
-    ...state,
-    isFetchingIsochrones: false,
-    isochrones: {
-      results: action.results
-    }
-  }
-
-...
-
-```
-
-Drum roll...
-
-Firing requests now works, so we now merely have to make our map listen to changes in our redux store which will be updated once a response is returned by HERE Maps.
-
-### Map.jsx
-
-Ok, so whenever isochrone results are returned we want to update the map.
-With a handy function every react component can use we can let the map know when the state is updated.
-Let's add this to our map component class.
-
-```javascript
-
-// class Map extends React.Component {
-...
-  componentDidUpdate() {
-    this.addIsochronesCenter();
-    this.addIsochrones();
-  }
-...
-```
-
-This is obviously calling 2 additional functions.
-The first adds a marker to the map... which looks something like this:
-
-```javascript
-...
-
-// class Map extends React.Component {
-  addIsochronesCenter() {
-
-    // clear the markers layer beforehand
-    markersLayer.clearLayers();
-
-    const isochronesCenter = this.props.isochronesControls.settings
-      .isochronesCenter;
-
-    // does this object contain a latitude and longitude?
-    if (isochronesCenter.lat && isochronesCenter.lng) {
-      // we are creating a leaflet circle marker with a minimal tooltip
-      L.circleMarker(isochronesCenter)
-        .addTo(markersLayer)
-        .bindTooltip(
-          "latitude: " +
-            isochronesCenter.lat +
-            ", " +
-            "longitude: " +
-            isochronesCenter.lng,
-          {
-            permanent: false
-          }
+// this customer slider is a functional component we can re-use for both dbscan settings
+const CustomSlider = ({ name, min, max, step, start, value, dispatch }) => (
+  <Slider
+    discrete
+    color="grey"
+    settings={{
+      start: start,
+      value: value,
+      min: min,
+      max: max,
+      step: step,
+      onChange: val => {
+        // if the slider is changed dispatch an action!
+        dispatch(
+          updateDbScanSettings({
+            setting: name,
+            value: val
+          })
         )
-        .openTooltip();
+      }
+    }}
+  />
+)
 
-      // set the map view
-      this.map.setView(isochronesCenter, 7);
-    }
-  }
+// and a functional component for the ui labels
+const CustomLabel = ({ content, value }) => (
+  <Popup content={content} trigger={<Label size="tiny">{value}</Label>} />
+)
 
 ...
 
+// the following snippets belong to our class
+
+// this function is executed once a user clicks the dbscan compute button
+handleClickDbscan = () => {
+  const { dispatch } = this.props
+  dispatch(computeDbScan())
+}
+
+render() {
+
+    // we will have to access our dbscan settings and the dispatch function from redux in our render() function
+    const { ..., dbscanSettings, dispatch } = this.props
+
+    ...
+
+    // the sliders can sit on top of our button
+   <Header as="h5">DBScan settings</Header>
+    <div className="flex flex-row">
+      <div className="w-80">
+        // our functional component using CustomSlider from above
+        <CustomSlider
+          name={'maxDistance'}
+          min={100}
+          max={5000}
+          step={50}
+          start={dbscanSettings.maxDistance}
+          value={dbscanSettings.maxDistance}
+          dispatch={dispatch}
+        />
+        <div className="mt2">
+          // hopefully self explanatory
+          <CustomLabel
+            value={'Max. distance: ' + dbscanSettings.maxDistance}
+            content={
+              'Maximum Distance ε between any point of the cluster to generate the clusters'
+            }
+          />
+        </div>
+      </div>
+      <div className="w-80">
+        <CustomSlider
+          name={'minPoints'}
+          min={3}
+          max={20}
+          step={1}
+          start={dbscanSettings.minPoints}
+          value={dbscanSettings.minPoints}
+          dispatch={dispatch}
+        />
+
+        <div className="mt2">
+          // hopefully self explanatory aswell.
+          <CustomLabel
+            value={'Min. points: ' + dbscanSettings.minPoints}
+            content={
+              "Minimum number of points to generate a single cluster, points which do not meet this requirement will be classified as an 'edge' or 'noise'."
+            }
+          />
+        </div>
+      </div>
+      <div className="w-20">
+        // using the CustomButton functional component we already used for our colorful places buttons
+        <CustomButton
+          basic={true}
+          size={'tiny'}
+          icon={'whmcs'}
+          circular={true}
+          popupContent={'Compute DBScan'}
+          disabled={this.areButtonsDisabled(places)}
+          handler={this.handleClickDbscan}
+        />
+      </div>
+    </div>
+    <Divider />
+
+    ...
+    // our buttons code follows here..
+
 ```
 
-...and the second handles the visualization of isochrones.
-This method uses chromajs which yet has to be imported with `import chroma from 'chroma-js'`.
+We have 2 different actions which are dispatched in this class now, namely `handleClickDbscan()` and `updateDbScanSettings()`.
+If you drag the sliders and change the values you will, in your redux state, notice that these are updated on the fly.
+The computation of clusters we will make part of our `Map.jsx` which comes next.
+
+![DBScan settings panel](https://user-images.githubusercontent.com/10322094/63053069-29d11c80-bee1-11e9-8f9d-b85463ef604d.png 'DBScan settings panel!')
+
+### Map/Map.jsx
+
+With our `lastCompute` state we can let the map know if the user has clicked on the compute dbscan clusters button.
+TurfJS will help us compute density based clusters, so let's make sure we add this logic.
 
 ```javascript
+
 ...
-// class Map extends React.Component {
-  addIsochrones() {
 
-    isochronesLayer.clearLayers();
+import { makeClusterObjects, computeDbScan, prepareGeojson } from './utils'
 
-    const isochrones = this.props.isochronesControls.isochrones.results;
-
-    // if we have polygons in our response
-    if (isochrones.length > 0) {
-      let cnt = 0;
-
-      // let's define a beautiful color range
-      const scaleHsl = chroma
-        .scale(["#f44242", "#f4be41", "#41f497"])
-        .mode("hsl")
-        .colors(isochrones.length);
-
-      // looping through all polygons and adding them to the map
-      for (const isochrone of isochrones) {
-        for (const isochroneComponent of isochrone.component) {
-          L.polygon(
-            isochroneComponent.shape.map(function(coordString) {
-              return coordString.split(",");
-            }),
-            {
-              fillColor: scaleHsl[cnt],
-              weight: 2,
-              opacity: 1,
-              color: "white",
-              pane: "isochronesPane"
-            }
-          ).addTo(isochronesLayer);
-        }
-        cnt += 1;
-      }
-
-      this.map.fitBounds(isochronesLayer.getBounds())
-    }
-  }
 ...
 
 ```
+
+`Utils.js`? This guy is new.
+We will use this file for a couple of functions to compute clusters and parse them.
+This will the Map class component a little cleaner.
+Let's create it and add the following code block.
+
+### Map/utils.js
+
+```javascript
+import { clustersDbscan, point } from '@turf/turf'
+import L from 'leaflet'
+
+// should look simple. Using our DBScan settings we compute the clusters with TurfJS!
+
+export const computeDbScan = (pointsGeojson, dbscanSettings) => {
+  const maxDistance = dbscanSettings.maxDistance / 1000
+  const minPoints = dbscanSettings.minPoints
+  const clustered = clustersDbscan(pointsGeojson, maxDistance, {
+    minPoints: minPoints
+  })
+
+  return clustered
+}
+
+// this function makes sure our different information in the clusters is processed for our needs
+export const makeClusterObjects = data => {
+  const clusters = {}
+
+  for (const feature of data.features) {
+    if (
+      feature.properties.dbscan === 'noise' ||
+      feature.properties.dbscan === 'edge'
+    ) {
+      if (clusters.hasOwnProperty(feature.properties.dbscan)) {
+        clusters[feature.properties.dbscan].push(feature.geometry.coordinates)
+      } else {
+        clusters[feature.properties.dbscan] = []
+      }
+    } else if (feature.properties.dbscan === 'core') {
+      if (clusters.hasOwnProperty(feature.properties.cluster)) {
+        clusters[feature.properties.cluster].push(
+          point(feature.geometry.coordinates)
+        )
+      } else {
+        clusters[feature.properties.cluster] = []
+      }
+    }
+  }
+
+  return clusters
+}
+
+// and this is where we create the Leaflet objects for our map
+export const prepareGeojson = (geojson, clusterSize, clusterObj) => {
+  return L.geoJSON(geojson, {
+    pointToLayer: (feature, latlng) => {
+      switch (feature.properties.type) {
+        case 'edge':
+        case 'noise':
+          return L.circleMarker(latlng)
+      }
+    },
+    style: feature => {
+      switch (feature.properties.type) {
+        case 'cluster':
+          return {
+            radius: 8,
+            fillColor: 'black',
+            weight: 0,
+            opacity: 1,
+            color: 'black',
+            pane: 'clusterPane'
+          }
+        case 'noise':
+          return {
+            radius: 8,
+            fillColor: 'black',
+            color: 'black',
+            weight: 0,
+            opacity: 1,
+            fillOpacity: 0.3
+          }
+        case 'edge':
+          return {
+            radius: 8,
+            fillColor: 'blue',
+            color: 'blue',
+            weight: 0,
+            opacity: 1,
+            fillOpacity: 0.3
+          }
+      }
+    }
+  }).bindTooltip(
+    '<strong>DBScan information:</strong> ' +
+      (!isNaN(clusterObj)
+        ? 'Cluster ' + (parseInt(clusterObj) + 1)
+        : clusterObj) +
+      (!isNaN(clusterObj)
+        ? '<br/> ' +
+          '<strong>Amount of points in cluster:</strong> ' +
+          clusterSize
+        : ''),
+    {
+      permanent: false,
+      sticky: true
+    }
+  )
+  //.openTooltip()
+}
+```
+
+And where is this piece of code called?
+Of course, in our `componentDidUpdate()` in `Map.jsx`.
+Straight forward, right?
+It is basically using the same logic we used to determine whether to add `circleMarkers` to the map.
+
+### Map/Map.jsx
+
+```javascript
+
+...
+
+componentDidUpdate(prevProps) {
+
+  const { ..., lastCompute, dbscanSettings } = this.props
+
+  ...
+
+  if (lastCompute > prevProps.lastCompute) {
+    clusterLayer.clearLayers()
+    const clusters = computeDbScan(placesLayer.toGeoJSON(), dbscanSettings)
+  }
+}
+
+...
+
+```
+
+The DBScan computation has successfully returned clusters which have to be processed which is the very last step to visualize them on the map.
+This step is a little cumbersome as it requires parsing the data returned by TurfJS to specific GeoJSON objects depending on whether they are
+clusters (polygons), noise or edge points (points).
+
+Let's dive back into the `componentDidUpdate()` function and below `const clusters..` add a new class component function which we can call with `this.processClusters(clusters)`.
+To make our lives a little easier we will use multiple classes provided by _TurfJS_.
+
+```javascript
+
+...
+
+import { concave, polygon, multiPoint, featureCollection } from '@turf/turf'
+
+...
+
+
+processClusters(clusterData) {
+
+  // some postprocessing of the clusters, happens in utils.js
+  const clustersNoiseEdges = makeClusterObjects(clusterData)
+
+  // looping through the processed clusters, we either have to compute the concave hull for clusters greater than 3 points
+  // for clusters with 3 points we create polygons
+  // and for anything less we want to display them as MultiPoints
+  for (const clusterObj in clustersNoiseEdges) {
+    const clusterSize = clustersNoiseEdges[clusterObj].length
+    let geojson
+    if (clusterObj !== 'noise' && clusterObj !== 'edge') {
+      switch (true) {
+        case clusterSize <= 2: {
+          geojson = multiPoint(
+            featureCollection(clustersNoiseEdges[clusterObj]),
+            {
+              type: 'cluster'
+            }
+          )
+          break
+        }
+
+        case clusterSize == 3: {
+          geojson = polygon(
+            featureCollection(clustersNoiseEdges[clusterObj]),
+            {
+              type: 'cluster'
+            }
+          )
+          break
+        }
+
+        case clusterSize > 3: {
+          geojson = concave(featureCollection(clustersNoiseEdges[clusterObj]))
+          geojson.properties.type = 'cluster'
+
+          break
+        }
+      }
+    // if the cluster type is noise or edge we also use MultiPoints
+    } else {
+      geojson = multiPoint(clustersNoiseEdges[clusterObj], {
+        type: clusterObj
+      })
+    }
+
+    // This is our last utils function we use to create the Leaflet GeoJSON classes and add them directly to the map
+    prepareGeojson(geojson, clusterSize, clusterObj).addTo(clusterLayer)
+  }
+}
+
+...
+
+```
+
+Drum roll... and that's it!
 
 ### Wrap-up
 
-At this point you have managed to build a simple web-app based on react, redux and leaflet which fetches and consumes isochrones from HERE Maps. Congratulations!!
+At this point you have managed to build a simple web-app based on react, redux, turfjs and leaflet which fetches and consumes places from HERE Maps. Congratulations!
 
-As you may have already gathered from the documentation, the HERE Maps Isochrones API is fairly feature rich and we haven't implemented all of the possible options and features yet.
-To this end, if you are interested to enhance the code we built together in this tutorial with new features you might want to have a look at [https://gis-ops.github.io/reachability-analysis](https://gis-ops.github.io/reachability-analysis) which is using the code of this tutorial as a skeleton and building additional options on top.
+As you may have already gathered from the documentation, the HERE Maps Places API is fairly feature rich and we haven't implemented all of the possible options and features.
+To this end, if you are interested to enhance the code we built together in this tutorial with new features feel free to create a pull request.
 
 If you have ideas how to improve this tutorial or in case something didn't work as you expected please feel free to leave some lovely feedback on our [GitHub](https://github.com/gis-ops/tutorials/issues/new).
 
 Thanks for working through this tutorial - your GIS-OPS team.
 
-![HERE Isochrones in Iceland](https://user-images.githubusercontent.com/10322094/53686593-49a4c780-3d29-11e9-963d-53896fd8aa54.png 'HERE Isochrones in Iceland')
+![DBScan clusters on your map](https://user-images.githubusercontent.com/10322094/63055497-4b80d280-bee6-11e9-8088-9287f89e76d4.png 'DBScan clusters on your map.')

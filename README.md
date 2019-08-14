@@ -1,3 +1,5 @@
+/_ eslint-disable _/
+
 # Building a DBScan Clustering Web(M)app with HERE Maps places, React, Leaflet and TurfJS
 
 ![HERE Maps Places and DBScan Clusters](https://user-images.githubusercontent.com/10322094/62734878-49bc9800-ba2a-11e9-9341-2d8215501c23.jpg)
@@ -21,35 +23,26 @@ To follow this tutorial, you will need the following:
 - A shell environment with preinstalled [Node.js](https://nodejs.org/en/download/) giving you the ability to use its package manager `npm` and `npx`.
 - A simple text editor such as [Sublime Text](https://www.sublimetext.com/).
 
-## Step 1 - Set up your app folder structure
+## Step 1 - Set up your app folder structure and install dependencies
 
-Open your shell and create your working directory in your home folder (or wherever) which will be used throughout this tutorial.
-
-```sh
-mkdir ~/react-redux-leaflet && cd $_
-```
-
-We will make use of the handy [create-react-app](https://github.com/facebook/create-react-app) repository which basically provides the skeleton for this tutorial.
-Go ahead and run this command within our working directory:
+Open your shell and clone this repository in your working directory.
 
 ```sh
-npx create-react-app app && cd $_
+git clone https://github.com/gis-ops/dbscan-clustering.git dbscan-clustering
 ```
 
-This will create a new folder named `app`.
-Within you will find a folder `src` holding the source files created for the `create-react-app` tutorial.
-No need for them, so for now please delete all source files as we will replace them with our own step by step.
+Next up we will want to remove all files in the source folders as you will be creating these as part of this tutorial.
 
 ```sh
-rm -rf src/*
+find src -type f -delete
 ```
 
-### Dependencies
+Up next you will have to install all required dependencies.
+We have prepared a `package.json` which you can use for installation which resides in your home folder `dbscan-clustering`.
 
-We will now add some dependencies for our app, for instance to be able to use redux and leaflet on top of react;
-for this task we have prepared a `package.json` file with everything neccessary. Please run the following commands in sequence.
-
-`npm install`
+```sh
+npm install
+```
 
 By the way, you might be wondering why we need these dependencies... TL;DR:
 
@@ -63,31 +56,23 @@ By the way, you might be wondering why we need these dependencies... TL;DR:
 
 You might be asking yourself why we aren't using react-leaflet bindings and the reason is simple: you should learn how leaflet works in its very core!
 
-Furthermore we will need some additional folders holding our components as well as actions/reducers for our redux store which will be created in the `src` folder.
-
-```sh
-mkdir -p -- src/reducers src/actions src/Map src/Controls
-```
-
 You folder structure should now have the following folder layout:
 
 ```sh
-├── README.md
+.
 ├── node_modules
-│   ├── ...
-│   ├── ...
 ├── package-lock.json
 ├── package.json
 ├── public
 │   ├── favicon.ico
 │   ├── index.html
 │   └── manifest.json
-├── src
-│   ├── Controls
-│   ├── Map
-│   ├── actions
-│   └── reducers
-└── yarn.lock
+└── src
+    ├── Controls
+    ├── Map
+    ├── actions
+    ├── images
+    └── reducers
 ```
 
 We do not have to worry about the public folder but feel free to read more about [webpack](https://github.com/webpack/webpack) in general if you are interested how it bundles and builds the application, e.g. [this tutorial](https://tutorialzine.com/2017/04/learn-webpack-in-15-minutes).
@@ -95,7 +80,7 @@ We do not have to worry about the public folder but feel free to read more about
 ## Step 2 - Let's create a map!
 
 With the first steps in place, we can start getting our hands dirty with the code of our first react components.
-Navigate to our `src` folder which will comprise the first couple of javascript source files.
+Navigate to our `src` folder which will hold the first couple of javascript source files.
 
 ### index.js
 
@@ -164,6 +149,7 @@ Afterwards paste this css markup:
 @import '~semantic-ui-css/semantic.css';
 @import '~leaflet/dist/leaflet.css';
 @import '~tachyons/css/tachyons.css';
+@import '~react-semantic-toasts/styles/react-semantic-alert.css';
 
 body {
   margin: 0;
@@ -171,14 +157,13 @@ body {
 }
 ```
 
-As mentioned in the introduction we will make use of [Semantic UI](https://semantic-ui.com/) because of its slick css styles.
+As mentioned in the introduction we will make use of [Semantic UI](https://semantic-ui.com/) because of its fancy css classes.
 Furthermore we will import leaflet's stylesheet for the map components as well as tachyons to adjust the layout with simple css classes.
 We remove all margins and paddings, since we want the map to use the full viewport.
 
 This leaves us with the following folder structure:
 
 ```sh
-├── README.md
 ├── node_modules
 │   ├── ...
 │   ├── ...
@@ -238,10 +223,7 @@ To understand the specific code blocks please read the inline comments.
 
 ```javascript
 import React from 'react'
-import { connect } from 'react-redux'
 import L from 'leaflet'
-import PropTypes from 'prop-types'
-
 import HereTileLayers from './hereTileLayers'
 
 // defining the container styles the map sits in
@@ -250,57 +232,49 @@ const style = {
   height: '100vh'
 }
 
-// use these or add your own HERE Maps credentials
-const hereAppCode = '0XXQyxbiCjVU7jN2URXuhg'
-const hereAppId = 'yATlKFDZwdLtjHzyTeCK'
-
 // using the reduced.day map styles, have a look at the imported hereTileLayers for more
 const hereReducedDay = HereTileLayers.here({
-  appId: hereAppId,
-  appCode: hereAppCode,
+  appId: 'jKco7gLGf0WWlvS5n2fl',
+  appCode: 'HQnCztY23zh2xiTPCFiTMA',
   scheme: 'reduced.day'
 })
 
 // for this app we create two leaflet layer groups to control, one for the isochrone centers and one for the isochrone contours
-const markersLayer = L.featureGroup()
-const isochronesLayer = L.featureGroup()
-
-// we define our bounds of the map
-const southWest = L.latLng(-90, -180),
-  northEast = L.latLng(90, 180),
-  bounds = L.latLngBounds(southWest, northEast)
+const placesLayer = L.featureGroup()
+const clusterLayer = L.featureGroup()
 
 // a leaflet map consumes parameters, I'd say they are quite self-explanatory
 const mapParams = {
-  center: [25.95681, -35.729687],
+  center: [40.7569, -73.9837],
   zoomControl: false,
-  maxBounds: bounds,
-  zoom: 2,
-  layers: [markersLayer, isochronesLayer, hereReducedDay]
+  maxBounds: L.latLngBounds(L.latLng(-90, -180), L.latLng(90, 180)),
+  zoom: 13,
+  layers: [placesLayer, clusterLayer, hereReducedDay]
 }
 
 // this you have seen before, we define a react component
 class Map extends React.Component {
-  static propTypes = {
-    isochronesControls: PropTypes.object.isRequired,
-    mapEvents: PropTypes.object,
-    dispatch: PropTypes.func.isRequired
-  }
-
   // and once the component has mounted we add everything to it
   componentDidMount() {
     // our map!
     this.map = L.map('map', mapParams)
 
     // we create a leaflet pane which will hold all isochrone polygons with a given opacity
-    var isochronesPane = this.map.createPane('isochronesPane')
-    isochronesPane.style.opacity = 0.9
+    const clusterPane = this.map.createPane('clusterPane')
+    clusterPane.style.opacity = 0.9
 
     // our basemap and add it to the map
     const baseMaps = {
-      'HERE reduced.day': hereReducedDay
+      'HERE Maps Tiles: reduced day': hereReducedDay
     }
-    L.control.layers(baseMaps).addTo(this.map)
+
+    const overlayMaps = {
+      'Points of interest': placesLayer,
+      Clusters: clusterLayer
+    }
+
+    // lets add the layers to our layer control
+    L.control.layers(baseMaps, overlayMaps).addTo(this.map)
 
     // we do want a zoom control
     L.control
@@ -308,48 +282,26 @@ class Map extends React.Component {
         position: 'topright'
       })
       .addTo(this.map)
-
-    // and for the sake of advertising your company, you may add a logo to the map
-    const brand = L.control({
-      position: 'bottomright'
-    })
-    brand.onAdd = function(map) {
-      var div = L.DomUtil.create('div', 'brand')
-      div.innerHTML =
-        '<a href="https://gis-ops.com" target="_blank"><img src="http://104.199.51.11:8083/wp-content/uploads/2018/11/gisops.png" width="150px"></img></a>'
-      return div
-    }
-    this.map.addControl(brand)
   }
 
-  // don't forget to render it :-)
   render() {
     return <div id="map" style={style} />
   }
 }
 
-// and we already map the redux store to properties which we will start soon
-const mapStateToProps = state => {
-  const isochronesControls = state.isochronesControls
-  return {
-    isochronesControls
-  }
-}
-
-export default connect(mapStateToProps)(Map)
+export default Map
 ```
 
-Then, get the adapted HERE TileLayers file from our repository:
+In the head of this file we are importing the HERE TileLayers which you can directly download from github.
 
 ```bash
 cd Map
-curl -H 'Accept: application/vnd.github.v3.raw' -o hereTileLayers.js https://api.github.com/repos/gis-ops/tutorials/contents/react-redux-leaflet/src/Map/hereTileLayers.js
+curl -H 'Accept: application/vnd.github.v3.raw' -o hereTileLayers.js https://api.github.com/repos/gis-ops/dbscan-clustering/contents/src/Map/hereTileLayers.js
 ```
 
 And to help you keep track of things, this is your new file structure:
 
 ```sh
-├── README.md
 ├── node_modules
 │   ├── ...
 │   ├── ...
@@ -372,61 +324,48 @@ And to help you keep track of things, this is your new file structure:
 └── yarn.lock
 ```
 
-### Creating our initial state
+To see your map in action simply execute `npm start`.
 
-In our map component you will have noticed that we are declaring a constant `mapStateToProps` which is used in the `react-redux connect` function which helps us inject the state into a specific component.
-Our control center of this app will be a little widget with configurable options hovering over the map which will take care of all of our isochrones settings, addresses and isochrone responses which we will receive from the HERE Maps API.
+### Creating our initial redux state
 
-To keep a good overview of our state in this tutorial we will add one object to our redux store; its state will be controlled by several actions originating from our control component.
+#In our map component you will have noticed that we are declaring a constant `mapStateToProps` which is used in the `react-redux connect` function which helps us inject the state into a specific component.
+
+Our control center of this app will be a little widget with options to fetch different points of interest from HERE Maps and run the DBScan clustering algorithm.
+To keep a good overview of our state in this tutorial we will add one state object to our redux store; its state will be controlled by several actions originating from our control component.
 
 Lets go ahead and
 
 - create a empty file `actions.js` in the `actions` folder and
 - a file `index.js` in the reducers folder holding our state object for the controls
 
-The constant `initialIsochronesControlsState` is the initial state object which is initially loaded in `isochronesControls` and later changed depending on the specific action made by the user from the controls and settings.
+The constant `initialPlacesState` is the initial state object which is initially loaded and later changed depending on the specific action made by the user from the control pane.
 
 ### reducers/index.js
 
 ```javascript
 import { combineReducers } from 'redux'
 
-// these are our initial isochrones settings
-const initialIsochronesControlsState = {
-  userInput: '',
-  geocodeResults: [],
-  isochrones: {
-    results: []
+const initialPlacesState = {
+  boundingbox: '',
+  message: { receivedAt: 0 },
+  lastCall: Date.now(),
+  places: {},
+  dbscanSettings: {
+    minPoints: 10,
+    maxDistance: 500
   },
-  isFetching: false,
-  isFetchingIsochrones: false,
-  settings: {
-    isochronesCenter: {},
-    range: {
-      max: 500,
-      value: 60
-    },
-    interval: {
-      max: 60,
-      value: 10
-    },
-    mode: 'car',
-    rangetype: 'distance',
-    traffic: 'disabled'
-  }
+  lastCompute: 0
 }
 
-// our reducer constant returning an unchanged or updated state object depending on the users action, many cases will follow
-const isochronesControls = (state = initialIsochronesControlsState, action) => {
+const placesControls = (state = initialPlacesState, action) => {
   switch (action.type) {
     default:
       return state
   }
 }
 
-// creates a root reducer and combines different reducers if needed
 const rootReducer = combineReducers({
-  isochronesControls
+  placesControls
 })
 
 export default rootReducer
@@ -435,36 +374,26 @@ export default rootReducer
 Let's quickly summarize what we have achieved so far.
 If you have followed the tutorial carefully you will have noticed that `src/index.js` is importing the reducer we have just created to initiate the redux store.
 The `App` which is being called inside inherently has access to this store and obviously all child components also.
-The 2 child components of our app handling all the logic will be our controls (which thus far don't exist) and the map component which has to listen to state changes and accordingly visualize everything on the map.
-And guess what: they are talking to each other through our redux store!
-
-Before we go ahead though with creating our controls, let's fire up the map with `npm start`; the following screenshot is what you should see (if you are experiencing an error in your shell then please carefully go through the steps again as you may have missed something crucial).
-
-You can safely ignore the warning about the unused variable:
-
-`Line 8: 'createLogger' is defined but never used no-unused-vars`
-
-In case our app starts perfectly but your browser doesn't redirect you to the map, head over to [localhost:3000](localhost:3000) on your own.
-
-By the way, if you have installed the redux-devtools plugin in your browser you will be able to access the state object.
+The 2 child components of our app handling all the logic will be our controls (which thus far don't exist) and the map component which has to listen to state changes and accordingly visualize state updates on the map.
+And guess what: they are talking to each other via our redux store.
 
 ![The leaflet map](https://user-images.githubusercontent.com/10322094/53686550-d0a57000-3d28-11e9-99c7-20055b815cac.png 'The leaflet map')
 
 ## Step 3 - Let's add controls!
 
 It's time to start with the fun stuff.
-To conveniently generate isochrones we will need to be able to _geocode_ addresses to coordinates and set some settings for isochrone ranges and intervals.
-We will control this logic with a small settings component in the application; therefore please navigate to the `Controls` folder and create a file which we will name `Control.jsx`.
+To conveniently fetch HERE Maps places we will need to be able to call their API with different category settings.
+We will control this logic with a small component in the application; therefore please navigate to the `Controls` folder and create a file which we will name `Control.jsx`.
 
 ### Control.jsx
 
-Our isochrones control has the following requirements:
+Our control has the following requirements:
 
-1. Input a free-form address
-2. Select a result from the found addresses by the HERE Maps API
-3. Fire isochrones given some preselected settings and address
+1. Click different buttons depending on the desired places category
+2. Compute DBScan clusters with the results fetched in 1.
 
-This obviously requires some user interaction and as the name suggests we need some ACTIONS which will change our state saved in redux! So let's go ahead and start with the first requirement in `Control.jsx`, namely adding an input field and it's specific actions.
+This obviously requires some user interaction and as the name suggests we need to define a range of redux actions which will reduce our state.
+So let's go ahead and start with the first requirement in `Control.jsx`: adding the logic to fetch places buttons.
 Don't worry too much about the new bits and pieces inside this block of code, you will learn quite quickly what they are doing.
 Please carefully go through the code line by line and read the inline comments with explanations.
 
@@ -472,118 +401,156 @@ Please carefully go through the code line by line and read the inline comments w
 import React from 'react'
 import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
+import { Segment, Button, Label, Popup } from 'semantic-ui-react'
 
-// we are importing some of the beautiful semantic UI react components
-import { Segment, Search, Divider, Button } from 'semantic-ui-react'
+// our actions which yet have to be scripted!
+import { fetchHerePlaces, clear } from '../actions/actions'
 
-// here are our first two actions, we will be adding them in the next step, bear with me!
-import {
-  updateTextInput,
-  fetchHereGeocode,
-  updateCenter
-} from '../actions/actions'
-
-// to wait for the users input we will add debounce, this is especially useful for "postponing" the geocode requests
-import { debounce } from 'throttle-debounce'
-
-// some inline styles (we should move these to our index.css at one stage)
+// some simple css styles which we could outsource to index.css but who cares for now ;-)
 const segmentStyle = {
   zIndex: 999,
   position: 'absolute',
   width: '400px',
   top: '10px',
   left: '10px',
-  maxHeight: 'calc(100vh - 5vw)',
+  maxHeight: 'calc(100vh - 3vw)',
   overflow: 'auto',
   padding: '20px'
 }
 
+// some HERE Maps places categories we want to be able to fetch with some cute colors
+const herePlaces = {
+  0: { name: 'shopping', color: 'red' },
+  1: { name: 'accommodation', color: 'orange' },
+  2: { name: 'administrative-areas-buildings', color: 'yellow' },
+  3: { name: 'airport', color: 'olive' },
+  4: { name: 'atm-bank-exchange', color: 'green' },
+  5: { name: 'coffee-tea', color: 'teal' },
+  6: { name: 'eat-drink', color: 'blue' },
+  7: { name: 'going-out', color: 'violet' },
+  8: { name: 'hospital-health-care-facility', color: 'purple' },
+  9: { name: 'leisure-outdoor', color: 'pink' },
+  10: { name: 'natural-geographical', color: 'brown' },
+  11: { name: 'petrol-station' },
+  12: { name: 'restaurant', color: 'grey' },
+  13: { name: 'snacks-fast-food', color: 'black' },
+  14: { name: 'sights-museums', color: 'red' },
+  16: { name: 'toilet-rest-area', color: 'yellow' },
+  17: { name: 'transport', color: 'olive' }
+}
+
+// we will use some functional react components to keep it simple
+const CustomLabel = ({ content, value }) => (
+  <Popup content={content} trigger={<Label size="tiny">{value}</Label>} />
+)
+CustomLabel.propTypes = {
+  content: PropTypes.string,
+  value: PropTypes.string
+}
+
 class Control extends React.Component {
   static propTypes = {
-    userTextInput: PropTypes.string.isRequired,
-    results: PropTypes.array.isRequired,
-    isFetching: PropTypes.bool.isRequired,
+    places: PropTypes.object,
     dispatch: PropTypes.func.isRequired
   }
 
-  constructor(props) {
-    super(props)
-    // binding this to the handleSearchChange method
-    this.handleSearchChange = this.handleSearchChange.bind(this)
-    // we are wrapping fetchGeocodeResults in a 1 second debounce
-    this.fetchGeocodeResults = debounce(1000, this.fetchGeocodeResults)
-  }
-
-  // if the input has changed... fetch some results!
-  handleSearchChange = event => {
+  // what happens if we click a places button
+  handleClick = (event, data) => {
     const { dispatch } = this.props
-
-    dispatch(
-      updateTextInput({
-        inputValue: event.target.value
-      })
-    )
-    this.fetchGeocodeResults()
+    dispatch(fetchHerePlaces({ category: data.content, color: data.color }))
   }
 
-  // if a user selects one of the geocode results update the input text field and set our center coordinates
-  handleResultSelect = (e, { result }) => {
+  // and also what happens if we click the remove icon
+  handleClickClear = () => {
     const { dispatch } = this.props
-
-    dispatch(
-      updateTextInput({
-        inputValue: result.title
-      })
-    )
-
-    dispatch(
-      updateCenter({
-        isochronesCenter: result.displayposition
-      })
-    )
+    dispatch(clear())
   }
 
-  // our method to fire a geocode request
-  fetchGeocodeResults() {
-    const { dispatch, userTextInput } = this.props
-    // If the text input has more then 0 characters..
-    if (userTextInput.length > 0) {
-      dispatch(
-        fetchHereGeocode({
-          inputValue: userTextInput
-        })
-      )
+  // some buttons can be disabled if no places exist..
+  areButtonsDisabled = places => {
+    let buttonsDisabled = true
+    for (const key in places) {
+      if (places.hasOwnProperty(key)) {
+        if (places[key].hasOwnProperty('data') && places[key].data.length > 0) {
+          buttonsDisabled = false
+        }
+      }
     }
+
+    return buttonsDisabled
   }
 
   render() {
-    // The following constants are used in our search input which is also a semanticUI react component <Search... />
-    const { isFetching, userTextInput, results } = this.props
+    // coming directly from our redux state
+    const { places } = this.props
 
+    // another functional component which will be used multiple times
+    const CustomButton = ({
+      content,
+      circular,
+      popupContent,
+      handler,
+      icon,
+      value,
+      disabled,
+      basic,
+      size,
+      loading,
+      color
+    }) => (
+      <Popup
+        content={popupContent}
+        size={size}
+        trigger={
+          <Button
+            color={color}
+            circular={circular}
+            content={content}
+            loading={loading}
+            size={size}
+            onClick={handler}
+            basic={basic}
+            disabled={disabled}
+            icon={icon}
+          />
+        }
+      />
+    )
+
+    // here we will loop through the herePlaces object above and add buttons!
     return (
       <div>
         <Segment style={segmentStyle}>
           <div>
-            <span>
-              Isochrones powered by <strong>HERE Maps</strong>
-            </span>
-          </div>
-          <Divider />
-          {/* they are tachyons css classes by the way..*/}
-          <div className="flex justify-between items-center mt3">
-            {/* more about the props can be read here https://react.semantic-ui.com/modules/search the most important part to mention here are our objects being fed to it. When a user types text into the input handleSearchChange is called. When the geocode API is called the variable loading will be set true to show the spinner (coming from state). The results are shown in a dropdown list (also coming from the state) and the value shown in the input is userTextInput (..also from state). */}
-            <Search
-              onSearchChange={this.handleSearchChange}
-              onResultSelect={this.handleResultSelect}
-              type="text"
-              fluid
-              input={{ fluid: true }}
-              loading={isFetching}
-              className="flex-grow-1 mr2"
-              results={results}
-              value={userTextInput}
-              placeholder="Find Address ..."
-            />
+            {Object.keys(herePlaces).map((key, index) => {
+              return (
+                <div key={index} className="mt1 dib">
+                  <CustomButton
+                    icon={false}
+                    popupContent={'Fetch places of this category'}
+                    content={herePlaces[key].name}
+                    disabled={false}
+                    handler={this.handleClick}
+                    color={herePlaces[key].color}
+                    loading={
+                      places[herePlaces[key].name]
+                        ? places[herePlaces[key].name].isFetching
+                        : false
+                    }
+                    size="tiny"
+                  />
+                </div>
+              )
+            })}
+            <div className="mt2">
+              <CustomButton
+                icon={'remove'}
+                size={'tiny'}
+                popupContent={'Reset places and map'}
+                handler={this.handleClickClear}
+                disabled={this.areButtonsDisabled(places)}
+              />
+            </div>
           </div>
         </Segment>
       </div>
@@ -591,128 +558,124 @@ class Control extends React.Component {
   }
 }
 
-//
+// connecting this class to our react store!
 const mapStateToProps = state => {
-  const userTextInput = state.isochronesControls.userInput
-  const results = state.isochronesControls.geocodeResults
-  const isFetching = state.isochronesControls.isFetching
-
+  const { places } = state.placesControls
   return {
-    userTextInput,
-    results,
-    isFetching
+    places
   }
 }
 
 export default connect(mapStateToProps)(Control)
 ```
 
-We are dispatching 2 different events in this class.
+We have added the buttons we want to be able to click to fetch categories from the HERE Maps places API.
+So far so good.
+You will quickly notice that nothing happens if you click the buttons, surprise surprise.. the actions are missing!
 
-1. First of all we want to update our state when the user inputs text.
-2. Secondly we want to fire geocoding requests to the HERE Maps API.
-3. We want to be able to select a result
+1. We want to fire an action when a user clicks a button which..
+2. Fires a request to the HERE Maps places API.
+3. And displays there places on the map
+4. Possibly you as a user want to clear the map again
 
-Both are mapped to 2 actions which are imported at the beginning of the file - which don't exist yet.
+Both are mapped to 2 actions, namely `fetchHerePlaces` and `clear` which are imported at the beginning of the file - which don't exist yet.
 So let's open `actions.js` in the actions folder.
 
 ### actions/actions.js
 
-This is probably the most tricky part to wrap your head around, however depending on your prior knowledge of react and redux in general you should understand what is going on quite quickly.
-As outline above the actions being called in `Control.jsx` are
+This is probably the most tricky part to wrap your head around.
+As outlined above the actions being called in `Control.jsx` are
 
-- `updateTextInput`
-- `fetchHereGeocode`
-- `updateCenter`
+- `fetchHerePlaces`
+- `clear`
 
 which you can all find within this piece of actions code.
 
-The `updateTextInput` action simply forwards the input of the user to the reducer and the `fetchHereGeocode` calls a more complex cascade of events.
-When an address is selected by the user, we obviously want to update our isochrones center for further action.
+The `fetchHerePlaces` action simply makes a call to HERE.
 
 Please find more comprehensive details inline.
 
 ```javascript
 // use these or add your own credentials
-const hereAppCode = '0XXQyxbiCjVU7jN2URXuhg'
-const hereAppId = 'yATlKFDZwdLtjHzyTeCK'
+const hereAppCode = 'your_heremaps_app_code'
+const hereAppId = 'your_heremaps_app_id'
 
-export const UPDATE_TEXTINPUT = 'UPDATE_TEXTINPUT'
-export const RECEIVE_GEOCODE_RESULTS = 'RECEIVE_GEOCODE_RESULTS'
-export const REQUEST_GEOCODE_RESULTS = 'REQUEST_GEOCODE_RESULTS'
-export const UPDATE_CENTER = 'UPDATE_CENTER'
+export const RECEIVE_PLACES_RESULTS = 'RECEIVE_PLACES_RESULTS'
+export const REQUEST_PLACES_RESULTS = 'REQUEST_PLACES_RESULTS'
+export const CLEAR = 'CLEAR'
 
-export const fetchHereGeocode = payload => dispatch => {
-  // It dispatches a further action to let our state know that requests are about to be made (loading spinner listens to this!)
-  dispatch(requestGeocodeResults())
+// this function takes care of the call to the HERE Maps API
+export const fetchHerePlaces = payload => (dispatch, getState) => {
+  // this simple dispatcher will make sure our loading icon spins ;-)
+  dispatch(requestPlacesResults({ category: payload.category }))
 
-  // we define our url and parameters to be sent along
-  let url = new URL('https://geocoder.api.here.com/6.2/geocode.json'),
-    params = {
-      app_id: hereAppId,
-      app_code: hereAppCode,
-      searchtext: payload.inputValue
-    }
+  // here we have to access our state to retrieve the boundingbox of the map which will be reduced in the subsequent step
+  const { boundingbox } = getState().placesControls
+
+  // to learn more about the parameters use this link https://developer.here.com/documentation/places/topics/search-results-ranking.html
+  const url = new URL(
+    'https://places.demo.api.here.com/places/v1/discover/explore'
+  )
+  const params = {
+    app_id: hereAppId,
+    app_code: hereAppCode,
+    in: boundingbox,
+    size: 100,
+    cat: payload.category
+  }
 
   url.search = new URLSearchParams(params)
 
-  // we use the fetch API to call HERE Maps with our parameters
-  return (
-    fetch(url)
-      // when a response is returned we extract the json data
-      .then(response => response.json())
-      // and this data we dispatch for processing in processGeocodeResponse
-      .then(data => dispatch(processGeocodeResponse(data)))
-      .catch(error => console.error(error))
+  return fetch(url)
+    .then(response => response.json())
+    .then(data =>
+      // once the data as json is returned we will dispatch the parsing of the data which will include the category and color passed through from the button properties
+      dispatch(
+        processPlacesResponse(
+          data,
+          payload.category,
+          boundingbox,
+          payload.color
+        )
+      )
+    )
+    .catch(error => console.error(error))
+}
+
+// to clear the places!
+export const clear = () => ({
+  type: CLEAR
+})
+
+const parsePlacesResponse = json => {
+  if (json.results && json.results.items.length > 0) {
+    return json.results.items
+  }
+  return []
+}
+
+const processPlacesResponse = (json, category, bbox, color) => dispatch => {
+  const results = parsePlacesResponse(json)
+
+  // the response is parsed and ready to be dispatched to our reducer
+  dispatch(
+    receivePlacesResults({
+      data: results,
+      category: category,
+      boundingbox: bbox,
+      color: color
+    })
   )
 }
 
-const parseGeocodeResponse = (json, latLng) => {
-  // parsing the response, just a simple example, this could be much more complex as the response from HERE is fairly ritch
-  if (json.Response && json.Response.View.length > 0) {
-    let processedResults = []
-
-    for (const address of json.Response.View[0].Result) {
-      if (address.Location && address.Location.LocationType === 'point') {
-        processedResults.push({
-          title: address.Location.Address.Label,
-          description: address.Location.Address.PostalCode,
-          displayposition: {
-            lat: address.Location.DisplayPosition.Latitude,
-            lng: address.Location.DisplayPosition.Longitude
-          }
-        })
-      }
-    }
-    return processedResults
-  }
-}
-
-const processGeocodeResponse = json => dispatch => {
-  // parse the json file and dispatch the results to receiveGeocodeResults which will be reduced
-  const results = parseGeocodeResponse(json)
-  // let's let the loading spinner now that it doesn't have to spin anymore
-  dispatch(receiveGeocodeResults(results))
-}
-
-export const receiveGeocodeResults = payload => ({
-  type: RECEIVE_GEOCODE_RESULTS,
-  results: payload
+export const receivePlacesResults = places => ({
+  type: RECEIVE_PLACES_RESULTS,
+  payload: places
 })
 
-export const requestGeocodeResults = payload => ({
-  type: REQUEST_GEOCODE_RESULTS,
-  ...payload
-})
-
-export const updateTextInput = payload => ({
-  type: UPDATE_TEXTINPUT,
-  payload
-})
-
-export const updateCenter = payload => ({
-  type: UPDATE_CENTER,
-  ...payload
+export const requestPlacesResults = category => ({
+  type: REQUEST_PLACES_RESULTS,
+  payload: category
 })
 ```
 
@@ -725,47 +688,68 @@ Please open your `index.js` in the reducer folder and import these actions right
 ...
 
 import {
-  UPDATE_TEXTINPUT,
-  REQUEST_GEOCODE_RESULTS,
-  RECEIVE_GEOCODE_RESULTS,
-  UPDATE_CENTER
+  REQUEST_PLACES_RESULTS,
+  RECEIVE_PLACES_RESULTS,
+  CLEAR
 } from '../actions/actions'
 
 ...
 ```
 
-And please add the the following cases to our `switch clause` under `isochroneControls` in the same file to let the the reducer know what to reduce for which action:
+And please add the the following cases to our `switch clause` under `placesControls` in the same file to let the the reducer know what to reduce for which action:
 
 ```javascript
 ...
 
-// when a user inputs text we update the userInput :) easy!
-case UPDATE_TEXTINPUT:
+// as mentioned above we want to let our button know that it is fetching
+case REQUEST_PLACES_RESULTS:
   return {
     ...state,
-    userInput: action.payload.inputValue
-  }
-// let the app know the request is being made (for our spinner)
-case REQUEST_GEOCODE_RESULTS:
-  return {
-    ...state,
-    isFetching: true
-  }
-// when results are returned by the API update the state with addresses and let the app know it is no longer fetching
-case RECEIVE_GEOCODE_RESULTS:
-  return {
-    ...state,
-    geocodeResults: action.results,
-    isFetching: false
-  }
-// update the isochronesCenter we will use later from the coordinates of the selected address
-case UPDATE_CENTER:
-  return {
-    ...state,
-    settings: {
-      ...state.settings,
-      isochronesCenter: action.isochronesCenter
+    places: {
+      ...state.places,
+      [action.payload.category]: {
+        ...state.places[action.payload.category],
+        isFetching: true
+      }
     }
+  }
+
+// if results are received we will start reducing our state
+case RECEIVE_PLACES_RESULTS:
+  return {
+    ...state,
+    // when was this data received
+    lastCall: Date.now(),
+    // updating our places object
+    places: {
+      ...state.places,
+      // for the requested category
+      [action.payload.category]: {
+        ...state.places[action.payload.category],
+        // this ternary operator decides if we will merge previous calls or not
+        data: state.places[action.payload.category].hasOwnProperty('data')
+          ? [
+              ...state.places[action.payload.category].data,
+              ...action.payload.data
+            ]
+          : action.payload.data,
+        // of course we will want to save the boundingbox
+        boundingbox: action.payload.boundingbox,
+        // and the color (used for the map later!)
+        color: action.payload.color,
+        // and make sure our spinner is disabled again
+        isFetching: false
+      }
+    }
+  }
+
+// self explanatory - I hope!
+case CLEAR:
+  return {
+    ...state,
+    places: {},
+    lastCall: Date.now(),
+    lastCompute: Date.now()
   }
 
 ...
@@ -779,11 +763,174 @@ To complete this step we have to import the controls to our application in `App.
 - and render them by adding `<Controls />` inside the `<div>...</div>` section.
 
 With all the changes in place you browser should update itself automatically.
-If it doesn't happen then run `npm start` again.
-You will now be able to insert a string which will be geocoded into a list of addresses and once results are returned, you will be able to select one of them.
+If it doesn't happen then simply run `npm start` again.
+You will now be able to click the buttons which should start and stop spinning.
+If you open your network console you will also see that requests are being made and if you are using the redux developer tools you will see that your redux store has been reduced with places categories.
 It should look something like this:
 
-![Geocoded addresses](https://user-images.githubusercontent.com/10322094/53017377-b7a6e000-3447-11e9-850a-07e46bf5e929.png 'Geocoded addresses')
+![The map with places buttons](https://user-images.githubusercontent.com/10322094/63046979-be348280-bed3-11e9-8f41-9fe27711efdf.png 'The map with places buttons')
+
+## Step 5 - Putting the places on the map!
+
+We obviously want to be able to see our HERE Maps places on the map now.
+If you followed the previous step carefully you will have seen that there is a parameter in API call called `in` which consumes the bounding box of the map.
+Why? Well, HERE has to know where to look for places.
+Open your `Map.jsx` file and look for the `componentDidMount()` function.
+We will need new map listeners which will make sure that our state gets an idea of which bounding box the user is currently looking at.
+
+### Map/Map.jsx
+
+```javascript
+...
+
+// when the map is paned, update the bounding box in the redux store
+this.map.on('moveend', () => {
+  dispatch(doUpdateBoundingBox(this.map.getBounds()))
+})
+
+// and also on load
+dispatch(doUpdateBoundingBox(this.map.getBounds()))
+
+...
+```
+
+And another action which has to be dispatched.
+I have called it `doUpdateBoundingBox()` which takes the `getBounds()` as an argument which is part of the Leaflet Map instance.
+So let's add it _but remember_ to import it in your Map component `import { doUpdateBoundingBox } from '../actions/actions'`.
+
+### actions/actions.js
+
+```javascript
+
+// a new action type to let our reducer know
+export const UPDATE_BBOX = 'UPDATE_BBOX'
+
+...
+
+export const doUpdateBoundingBox = boundingbox => dispatch => {
+  // here we simply build the bounding box string which is required for the HERE Maps API
+  const bbox = [
+    boundingbox._southWest.lng,
+    boundingbox._southWest.lat,
+    boundingbox._northEast.lng,
+    boundingbox._northEast.lat
+  ].join(',')
+
+  dispatch(updateBoundingBox(bbox))
+}
+
+const updateBoundingBox = bbox => ({
+  type: UPDATE_BBOX,
+  payload: bbox
+})
+
+...
+```
+
+And last but not least we will add this functionality to our reducer.
+
+### reducers/index.js
+
+First of all import `UPDATE_BBOX` it in the head where are your other imported actions reside.
+Then we will add a new simple case to our switch
+
+```javascript
+
+...
+
+case UPDATE_BBOX:
+  return {
+    ...state,
+    boundingbox: action.payload
+  }
+
+...
+```
+
+This will make our http calls to the HERE Maps places API sound and return data.
+However, we will have to make sure that they are plotted on the map, so let's go back there.
+
+### Map/Map.jsx
+
+We will add a new function `componentDidUpdate()` which is part of every React component class which is able to listen if the state has updated, you will most likely seen this guy before.
+Add this in the class itself.
+You will remember the `lastCall` parameter of our store which we can make use of here.
+We basically want to know if this parameter has changed compared to the previous props.
+If this is the case, we know a new request has been made to the API and we can update our map with the help of `addPlaces()`.
+
+```javascript
+
+...
+
+componentDidUpdate(prevProps) {
+  const { lastCall } = this.props
+  // is the epoche timestamp later?
+  if (lastCall > prevProps.lastCall) {
+    // if so, then start adding places to the map
+    this.addPlaces()
+  }
+}
+
+addPlaces() {
+  // let's clear the layers with the help of Leaflets mighty API
+  placesLayer.clearLayers()
+
+  // places will become part of our props but for this we have to connect this component to our state in the next step
+  const { places } = this.props
+  let cnt = 0
+  // loop through our places
+  for (const place in places) {
+    // make sure data is there ;-)
+    if (
+      places[place].hasOwnProperty('data') &&
+      places[place].data.length > 0
+    ) {
+      // for every place in data we will add a beautiful Leaflet circlemarker with a tooltip!
+      for (const placeObj of places[place].data) {
+        L.circleMarker([placeObj.position[0], placeObj.position[1]], {
+          color: places[place].color,
+          orig_color: places[place].color,
+          radius: 5,
+          id: cnt,
+          weight: 1,
+          opacity: 0.5
+        })
+          .addTo(placesLayer)
+          .bindTooltip(placeObj.title)
+        cnt += 1
+      }
+    }
+  }
+}
+
+...
+```
+
+But where to the places come from?
+Of course, from our redux store.
+Let's connect this component with this following snippet but don't forget to remove the current `export default Map`!
+
+```javascript
+
+...
+
+const mapStateToProps = state => {
+  const { places, lastCall, lastCompute, dbscanSettings } = state.placesControls
+  return {
+    places,
+    lastCall
+  }
+}
+
+export default connect(mapStateToProps)(Map)
+
+...
+```
+
+We have made it.
+Refresh your application and request some places, you will see something beautiful like this:
+
+![Some places on the map](https://user-images.githubusercontent.com/10322094/63048658-4700ed80-bed7-11e9-91ad-5f266c0df8d7.png 'Some places on the map!')
 
 ## Step 4 - Settings for the user
 

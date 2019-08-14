@@ -1,8 +1,10 @@
 # Building a DBScan Clustering Web(M)app with HERE Maps places, React, Leaflet and TurfJS
 
-![HERE Maps Places and DBScan Clusters](https://user-images.githubusercontent.com/10322094/62734878-49bc9800-ba2a-11e9-9341-2d8215501c23.jpg)
+![HERE Maps Places and DBScan Clusters](https://user-images.githubusercontent.com/10322094/63055497-4b80d280-bee6-11e9-8088-9287f89e76d4.png)
 
 In this tutorial you will learn how to use ReactJS, Redux, TurfJS and Leaflet to create a simple but powerful maps application which is capable of consuming the HERE Places API and with these places is able to compute clusters with the almighty [Density Based Clustering Algoritm With Noise](https://en.wikipedia.org/wiki/DBSCAN).
+
+Please find a live version [here](https://gis-ops.github.io/dbscan-clustering/).
 
 Ummmh, so what are clustering algorithms good for? Let's have a look what wikipedia says.
 

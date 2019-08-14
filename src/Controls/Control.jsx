@@ -1,7 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
-import _ from 'lodash'
 import { Slider } from 'react-semantic-ui-range'
 import { SemanticToastContainer, toast } from 'react-semantic-toasts'
 
@@ -10,7 +9,6 @@ import {
   Divider,
   Button,
   Header,
-  Loader,
   Label,
   Popup
 } from 'semantic-ui-react'
@@ -28,7 +26,6 @@ const segmentStyle = {
   width: '400px',
   top: '10px',
   left: '10px',
-  //height: '100vh',
   maxHeight: 'calc(100vh - 3vw)',
   overflow: 'auto',
   padding: '20px'
@@ -54,11 +51,49 @@ const herePlaces = {
   17: { name: 'transport', color: 'olive' }
 }
 
+const CustomSlider = ({ name, min, max, step, start, value, dispatch }) => (
+  <Slider
+    discrete
+    color="grey"
+    settings={{
+      start: start,
+      value: value,
+      min: min,
+      max: max,
+      step: step,
+      onChange: val => {
+        dispatch(
+          updateDbScanSettings({
+            setting: name,
+            value: val
+          })
+        )
+      }
+    }}
+  />
+)
+CustomSlider.propTypes = {
+  name: PropTypes.string,
+  min: PropTypes.number,
+  max: PropTypes.number,
+  step: PropTypes.number,
+  start: PropTypes.number,
+  value: PropTypes.number,
+  dispatch: PropTypes.func
+}
+
+const CustomLabel = ({ content, value }) => (
+  <Popup content={content} trigger={<Label size="tiny">{value}</Label>} />
+)
+CustomLabel.propTypes = {
+  content: PropTypes.string,
+  value: PropTypes.string
+}
+
 class Control extends React.Component {
   static propTypes = {
     places: PropTypes.object,
     dbscanSettings: PropTypes.object,
-    isCalculatingDbScan: PropTypes.bool,
     boundingbox: PropTypes.string,
     dispatch: PropTypes.func.isRequired,
     message: PropTypes.object
@@ -66,8 +101,7 @@ class Control extends React.Component {
 
   handleClick = (event, data) => {
     const { dispatch } = this.props
-    this.setState({ value: data.name })
-    dispatch(fetchHerePlaces({ category: data.name, color: data.color }))
+    dispatch(fetchHerePlaces({ category: data.content, color: data.color }))
   }
 
   handleClickDbscan = () => {
@@ -93,14 +127,52 @@ class Control extends React.Component {
     }
   }
 
+  areButtonsDisabled = places => {
+    let buttonsDisabled = true
+    for (const key in places) {
+      if (places.hasOwnProperty(key)) {
+        if (places[key].hasOwnProperty('data') && places[key].data.length > 0) {
+          buttonsDisabled = false
+        }
+      }
+    }
+
+    return buttonsDisabled
+  }
+
   render() {
-    const {
-      places,
-      isCalculatingDbScan,
-      boundingbox,
-      dbscanSettings,
-      dispatch
-    } = this.props
+    const { places, boundingbox, dbscanSettings, dispatch } = this.props
+    const CustomButton = ({
+      content,
+      circular,
+      popupContent,
+      handler,
+      icon,
+      value,
+      disabled,
+      basic,
+      size,
+      loading,
+      color
+    }) => (
+      <Popup
+        content={popupContent}
+        size={size}
+        trigger={
+          <Button
+            color={color}
+            circular={circular}
+            content={content}
+            loading={loading}
+            size={size}
+            onClick={handler}
+            basic={basic}
+            disabled={disabled}
+            icon={icon}
+          />
+        }
+      />
+    )
 
     return (
       <div>
@@ -145,116 +217,91 @@ class Control extends React.Component {
           <Header as="h5">DBScan settings</Header>
           <div className="flex flex-row">
             <div className="w-80">
-              <Slider
-                discrete
-                color="grey"
+              <CustomSlider
+                name={'maxDistance'}
+                min={100}
+                max={5000}
+                step={50}
+                start={dbscanSettings.maxDistance}
                 value={dbscanSettings.maxDistance}
-                settings={{
-                  start: dbscanSettings.maxDistance,
-                  value: dbscanSettings.maxDistance,
-                  min: 100,
-                  max: 5000,
-                  step: 50,
-                  onChange: value => {
-                    dispatch(
-                      updateDbScanSettings({
-                        setting: 'maxDistance',
-                        value: value
-                      })
-                    )
-                  }
-                }}
+                dispatch={dispatch}
               />
               <div className="mt2">
-                <Popup
-                  content="Maximum Distance ε between any point of the cluster to generate the clusters"
-                  trigger={
-                    <Label size="tiny">
-                      {'Max. distance in meters: ' + dbscanSettings.maxDistance}
-                    </Label>
+                <CustomLabel
+                  value={'Max. distance: ' + dbscanSettings.maxDistance}
+                  content={
+                    'Maximum Distance ε between any point of the cluster to generate the clusters'
                   }
                 />
               </div>
             </div>
             <div className="w-80">
-              <Slider
-                discrete
-                color="grey"
-                value={dbscanSettings}
-                settings={{
-                  start: dbscanSettings.minPoints,
-                  value: dbscanSettings.minPoints,
-                  min: 3,
-                  max: 20,
-                  step: 1,
-                  onChange: value => {
-                    dispatch(
-                      updateDbScanSettings({
-                        setting: 'minPoints',
-                        value: value
-                      })
-                    )
-                  }
-                }}
+              <CustomSlider
+                name={'minPoints'}
+                min={3}
+                max={50}
+                step={1}
+                start={dbscanSettings.minPoints}
+                value={dbscanSettings.minPoints}
+                dispatch={dispatch}
               />
+
               <div className="mt2">
-                <Popup
-                  content="Minimum number of points to generate a single cluster, points which do not meet this requirement will be classified as an 'edge' or 'noise'."
-                  trigger={
-                    <Label size="tiny">
-                      {'Min. points: ' + dbscanSettings.minPoints}
-                    </Label>
+                <CustomLabel
+                  value={'Min. points: ' + dbscanSettings.minPoints}
+                  content={
+                    "Minimum number of points to generate a single cluster, points which do not meet this requirement will be classified as an 'edge' or 'noise'."
                   }
                 />
               </div>
             </div>
             <div className="w-20">
-              <Button
-                circular
-                icon="whmcs"
-                disabled={_.isEmpty(places)}
-                onClick={this.handleClickDbscan}
+              <CustomButton
+                basic={true}
+                size={'tiny'}
+                icon={'whmcs'}
+                circular={true}
+                popupContent={'Compute DBScan'}
+                disabled={this.areButtonsDisabled(places)}
+                handler={this.handleClickDbscan}
               />
             </div>
           </div>
-
           <Divider />
           <div>
-            <Loader
-              active={isCalculatingDbScan}
-              style={{ right: 0, left: 'unset' }}
-            />
             {Object.keys(herePlaces).map((key, index) => {
               let isDisabled = false
-              if (places[herePlaces[key].name]) {
+              if (places.hasOwnProperty(herePlaces[key].name)) {
                 if (boundingbox === places[herePlaces[key].name].boundingbox) {
                   isDisabled = true
                 }
               }
               return (
                 <div key={index} className="mt1 dib">
-                  <Button
-                    size="tiny"
+                  <CustomButton
+                    icon={false}
+                    popupContent={'Fetch places of this category'}
+                    content={herePlaces[key].name}
+                    handler={this.handleClick}
+                    color={herePlaces[key].color}
                     disabled={isDisabled}
                     loading={
                       places[herePlaces[key].name]
                         ? places[herePlaces[key].name].isFetching
                         : false
                     }
-                    onClick={this.handleClick}
-                    name={herePlaces[key].name}
-                    color={herePlaces[key].color}>
-                    {herePlaces[key].name}
-                  </Button>
+                    size="tiny"
+                  />
                 </div>
               )
             })}
             <div className="mt2">
-              <Popup
-                content="Reset places and map"
-                trigger={
-                  <Button onClick={this.handleClickClear} basic icon="remove" />
-                }
+              <CustomButton
+                icon={'remove'}
+                size={'tiny'}
+                popupContent={'Reset places and map'}
+                handler={this.handleClickClear}
+                disabled={this.areButtonsDisabled(places)}
               />
             </div>
           </div>
@@ -266,18 +313,10 @@ class Control extends React.Component {
 }
 
 const mapStateToProps = state => {
-  const {
-    places,
-    isCalculatingDbScan,
-    boundingbox,
-    dbscanSettings,
-    message
-  } = state.placesControls
-
+  const { places, dbscanSettings, boundingbox, message } = state.placesControls
   return {
     places,
     boundingbox,
-    isCalculatingDbScan,
     dbscanSettings,
     message
   }

@@ -31,36 +31,6 @@ const placesControls = (state = initialPlacesState, action) => {
         lastCompute: Date.now()
       }
 
-    case RESULT_HANDLER:
-      return {
-        ...state,
-        message: {
-          ...state.message,
-          ...action.payload,
-          receivedAt: Date.now()
-        }
-      }
-
-    case COMPUTE_DBSCAN:
-      return {
-        ...state,
-        lastCompute: Date.now()
-      }
-
-    case UPDATE_DBSCAN_SETTINGS:
-      return {
-        ...state,
-        dbscanSettings: {
-          ...state.dbscanSettings,
-          [action.payload.setting]: action.payload.value
-        }
-      }
-
-    case UPDATE_BBOX:
-      return {
-        ...state,
-        boundingbox: action.payload
-      }
     case REQUEST_PLACES_RESULTS:
       return {
         ...state,
@@ -91,6 +61,37 @@ const placesControls = (state = initialPlacesState, action) => {
             color: action.payload.color,
             isFetching: false
           }
+        }
+      }
+
+    case UPDATE_BBOX:
+      return {
+        ...state,
+        boundingbox: action.payload
+      }
+
+    case RESULT_HANDLER:
+      return {
+        ...state,
+        message: {
+          ...state.message,
+          ...action.payload,
+          receivedAt: Date.now()
+        }
+      }
+
+    case COMPUTE_DBSCAN:
+      return {
+        ...state,
+        lastCompute: Date.now()
+      }
+
+    case UPDATE_DBSCAN_SETTINGS:
+      return {
+        ...state,
+        dbscanSettings: {
+          ...state.dbscanSettings,
+          [action.payload.setting]: action.payload.value
         }
       }
 

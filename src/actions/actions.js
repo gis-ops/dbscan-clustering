@@ -43,6 +43,15 @@ export const fetchHerePlaces = payload => (dispatch, getState) => {
     .catch(error => console.error(error)) //eslint-disable-line
 }
 
+export const sendMessage = message => ({
+  type: RESULT_HANDLER,
+  payload: message
+})
+
+export const clear = () => ({
+  type: CLEAR
+})
+
 export const doUpdateBoundingBox = boundingbox => dispatch => {
   const bbox = [
     boundingbox._southWest.lng,
@@ -53,15 +62,6 @@ export const doUpdateBoundingBox = boundingbox => dispatch => {
 
   dispatch(updateBoundingBox(bbox))
 }
-
-export const sendMessage = message => ({
-  type: RESULT_HANDLER,
-  payload: message
-})
-
-export const clear = () => ({
-  type: CLEAR
-})
 
 const updateBoundingBox = bbox => ({
   type: UPDATE_BBOX,
@@ -86,6 +86,7 @@ const parsePlacesResponse = json => {
 
 const processPlacesResponse = (json, category, bbox, color) => dispatch => {
   const results = parsePlacesResponse(json)
+
   dispatch(
     receivePlacesResults({
       data: results,
@@ -94,6 +95,17 @@ const processPlacesResponse = (json, category, bbox, color) => dispatch => {
       color: color
     })
   )
+  if (results.length == 0) {
+    dispatch(
+      sendMessage({
+        type: 'info',
+        icon: 'warning',
+        description:
+          'No places in your viewport, zoom to another region and try again.',
+        title: 'DBScan settings'
+      })
+    )
+  }
 }
 
 export const receivePlacesResults = places => ({

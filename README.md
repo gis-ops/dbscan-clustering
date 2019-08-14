@@ -2,7 +2,7 @@
 
 ![HERE Maps Places and DBScan Clusters](https://user-images.githubusercontent.com/10322094/62734878-49bc9800-ba2a-11e9-9341-2d8215501c23.jpg)
 
-In this tutorial you will learn how to use ReactJS, Redux, TurfJS and Leaflet to create a simple but powerful maps application which is capable of consuming the HERE Places API and with these able to compute clusters with [DBScan](https://en.wikipedia.org/wiki/DBSCAN).
+In this tutorial you will learn how to use ReactJS, Redux, TurfJS and Leaflet to create a simple but powerful maps application which is capable of consuming the HERE Places API and with these places is able to compute clusters with the almighty [Density Based Clustering Algoritm With Noise](https://en.wikipedia.org/wiki/DBSCAN).
 
 Ummmh, so what are clustering algorithms good for? Let's have a look what wikipedia says.
 
@@ -209,7 +209,7 @@ class App extends React.Component {
 export default App
 ```
 
-### Map.jsx
+### Map/Map.jsx
 
 As the name suggests this component will create our map and handle all of our interactions on it.
 Step by step we will add some logic to this component but let's start with basics first.
@@ -377,7 +377,7 @@ It's time to start with the fun stuff.
 To conveniently fetch HERE Maps places we will need to be able to call their API with different category settings.
 We will control this logic with a small component in the application; therefore please navigate to the `Controls` folder and create a file which we will name `Control.jsx`.
 
-### Control.jsx
+### Controls/Control.jsx
 
 Our control has the following requirements:
 
@@ -1177,6 +1177,8 @@ We have 2 different actions which are dispatched in this class now, namely `hand
 If you drag the sliders and change the values you will, in your redux state, notice that these are updated on the fly.
 The computation of clusters we will make part of our `Map.jsx` which comes next.
 
+## Step 7 - Computing clusters and adding them to the map
+
 ![DBScan settings panel](https://user-images.githubusercontent.com/10322094/63053069-29d11c80-bee1-11e9-8f9d-b85463ef604d.png 'DBScan settings panel!')
 
 ### Map/Map.jsx
@@ -1404,16 +1406,16 @@ processClusters(clusterData) {
 
 ```
 
-Drum roll... and that's it!
+Drum roll...
 
 ### Wrap-up
 
-At this point you have managed to build a simple web-app based on react, redux, turfjs and leaflet which fetches and consumes places from HERE Maps. Congratulations!
+At this point you have managed to build a simple web-app based on react, redux, turfjs and leaflet which fetches and consumes places from HERE Maps and is able to compute DBScan clusters.
+Congratulations!
 
 As you may have already gathered from the documentation, the HERE Maps Places API is fairly feature rich and we haven't implemented all of the possible options and features.
 To this end, if you are interested to enhance the code we built together in this tutorial with new features feel free to create a pull request.
-
-If you have ideas how to improve this tutorial or in case something didn't work as you expected please feel free to leave some lovely feedback on our [GitHub](https://github.com/gis-ops/tutorials/issues/new).
+And if you have ideas how to improve this tutorial or in case something didn't work as you expected please feel free to leave some lovely feedback on our [GitHub](https://github.com/gis-ops/tutorials/issues/new).
 
 Thanks for working through this tutorial - your GIS-OPS team.
 

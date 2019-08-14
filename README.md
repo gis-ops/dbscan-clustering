@@ -1417,10 +1417,37 @@ processClusters(clusterData) {
 ```
 
 Drum roll... you are done!
+Your final folder structure should look something similar to this:
+
+```javascript
+.
+├── node_modules
+│   ├── ...
+│   ├── ...
+├── package.json
+├── public
+│   ├── favicon.ico
+│   ├── index.html
+│   └── manifest.json
+└── src
+    ├── App.jsx
+    ├── Controls
+    │   └── Control.jsx
+    ├── Map
+    │   ├── Map.jsx
+    │   ├── hereTileLayers.js
+    │   └── utils.js
+    ├── actions
+    │   └── actions.js
+    ├── index.css
+    ├── index.js
+    └── reducers
+        └── index.js
+```
 
 ### Wrap-up
 
-At this point you have managed to build a simple web-app based on _React_, _Redux_, _TurfJS_ and *Leaflet+ which fetches and consumes places from *HERE Maps\* and is able to compute DBScan clusters.
+At this point you have managed to build a simple web-app based on _React_, _Redux_, _TurfJS_ and _Leaflet_ which fetches and consumes places from \*HERE Maps\* and is able to compute DBScan clusters.
 Congratulations!
 
 As you may have already gathered from the documentation, the **HERE Maps Places API** is fairly feature rich and we haven't implemented all of the possible options and features.

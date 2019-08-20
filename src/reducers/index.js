@@ -6,7 +6,8 @@ import {
   UPDATE_DBSCAN_SETTINGS,
   COMPUTE_DBSCAN,
   RESULT_HANDLER,
-  CLEAR
+  CLEAR,
+  DISABLE_PLACES
 } from '../actions/actions'
 
 const initialPlacesState = {
@@ -23,15 +24,27 @@ const initialPlacesState = {
 
 const placesControls = (state = initialPlacesState, action) => {
   switch (action.type) {
-    case CLEAR:
+    case DISABLE_PLACES: {
+      return {
+        ...state,
+        places: {
+          ...state.places,
+          [action.payload]: {
+            ...state.places[action.payload],
+            disabled: true
+          }
+        }
+      }
+    }
+    case CLEAR: {
       return {
         ...state,
         places: {},
         lastCall: Date.now(),
         lastCompute: Date.now()
       }
-
-    case REQUEST_PLACES_RESULTS:
+    }
+    case REQUEST_PLACES_RESULTS: {
       return {
         ...state,
         places: {
@@ -42,8 +55,9 @@ const placesControls = (state = initialPlacesState, action) => {
           }
         }
       }
+    }
 
-    case RECEIVE_PLACES_RESULTS:
+    case RECEIVE_PLACES_RESULTS: {
       return {
         ...state,
         lastCall: Date.now(),
@@ -54,23 +68,31 @@ const placesControls = (state = initialPlacesState, action) => {
             data: state.places[action.payload.category].hasOwnProperty('data')
               ? [
                   ...state.places[action.payload.category].data,
-                  ...action.payload.data
+                  ...action.payload.data.items
                 ]
-              : action.payload.data,
+              : action.payload.data.items,
+            next: action.payload.data.next,
+            previous: action.payload.data.previous,
             boundingbox: action.payload.boundingbox,
             color: action.payload.color,
-            isFetching: false
+            isFetching: false,
+            disabled: !action.payload.data.next
           }
         }
       }
-
-    case UPDATE_BBOX:
-      return {
-        ...state,
-        boundingbox: action.payload
+    }
+    case UPDATE_BBOX: {
+      const newState = { ...state }
+      newState.boundingbox = action.payload
+      for (const obj in newState.places) {
+        newState.places[obj].disabled = false
+        newState.places[obj].next = undefined
+        newState.places[obj].previous = undefined
       }
 
-    case RESULT_HANDLER:
+      return newState
+    }
+    case RESULT_HANDLER: {
       return {
         ...state,
         message: {
@@ -79,14 +101,14 @@ const placesControls = (state = initialPlacesState, action) => {
           receivedAt: Date.now()
         }
       }
-
-    case COMPUTE_DBSCAN:
+    }
+    case COMPUTE_DBSCAN: {
       return {
         ...state,
         lastCompute: Date.now()
       }
-
-    case UPDATE_DBSCAN_SETTINGS:
+    }
+    case UPDATE_DBSCAN_SETTINGS: {
       return {
         ...state,
         dbscanSettings: {
@@ -94,9 +116,10 @@ const placesControls = (state = initialPlacesState, action) => {
           [action.payload.setting]: action.payload.value
         }
       }
-
-    default:
+    }
+    default: {
       return state
+    }
   }
 }
 

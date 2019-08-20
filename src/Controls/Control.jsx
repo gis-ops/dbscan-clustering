@@ -101,7 +101,7 @@ class Control extends React.Component {
 
   handleClick = (event, data) => {
     const { dispatch } = this.props
-    dispatch(fetchHerePlaces({ category: data.content, color: data.color }))
+    dispatch(fetchHerePlaces({ category: data.name, color: data.color }))
   }
 
   handleClickDbscan = () => {
@@ -141,12 +141,13 @@ class Control extends React.Component {
   }
 
   render() {
-    const { places, boundingbox, dbscanSettings, dispatch } = this.props
+    const { places, dbscanSettings, dispatch } = this.props
     const CustomButton = ({
       content,
       circular,
       popupContent,
       handler,
+      name,
       icon,
       value,
       disabled,
@@ -164,6 +165,7 @@ class Control extends React.Component {
             circular={circular}
             content={content}
             loading={loading}
+            name={name}
             size={size}
             onClick={handler}
             basic={basic}
@@ -270,10 +272,13 @@ class Control extends React.Component {
           <Divider />
           <div>
             {Object.keys(herePlaces).map((key, index) => {
-              let isDisabled = false
-              if (places.hasOwnProperty(herePlaces[key].name)) {
-                if (boundingbox === places[herePlaces[key].name].boundingbox) {
-                  isDisabled = true
+              let content = herePlaces[key].name
+              if (places[herePlaces[key].name]) {
+                if (
+                  !places[herePlaces[key].name].disabled &&
+                  places[herePlaces[key].name].next
+                ) {
+                  content = 'fetch more..'
                 }
               }
               return (
@@ -281,10 +286,15 @@ class Control extends React.Component {
                   <CustomButton
                     icon={false}
                     popupContent={'Fetch places of this category'}
-                    content={herePlaces[key].name}
+                    content={content}
+                    name={herePlaces[key].name}
                     handler={this.handleClick}
                     color={herePlaces[key].color}
-                    disabled={isDisabled}
+                    disabled={
+                      places[herePlaces[key].name]
+                        ? places[herePlaces[key].name].disabled
+                        : false
+                    }
                     loading={
                       places[herePlaces[key].name]
                         ? places[herePlaces[key].name].isFetching
